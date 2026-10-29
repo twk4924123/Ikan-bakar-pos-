@@ -296,4 +296,849 @@
       </div>
 
       <div class="bg-white p-3.5 rounded-xl shadow-sm border border-slate-300 flex items-center justify-between">
-    
+        <label class="text-xs font-black text-slate-700">查阅存档月份/周期:</label>
+        <input type="month" id="monthly-picker" onchange="renderMonthlyReport()" class="bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-black text-slate-800">
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-white p-3.5 rounded-xl border border-slate-300 shadow-sm"><span class="text-xs font-bold text-slate-500 block">周期总营业额 Total Sales</span><span id="stat-monthly-sales" class="text-lg font-black text-blue-600">RM 0.00</span></div>
+        <div class="bg-white p-3.5 rounded-xl border border-slate-300 shadow-sm"><span class="text-xs font-bold text-slate-500 block">海鲜总成本 Seafood Cost</span><span id="stat-monthly-cogs" class="text-lg font-black text-rose-600">RM 0.00</span></div>
+        <div class="bg-white p-3.5 rounded-xl border border-slate-300 shadow-sm"><span class="text-xs font-bold text-slate-500 block">固定开销 Fixed Expenses</span><span id="stat-monthly-fixed" class="text-lg font-black text-amber-600">RM 0.00</span></div>
+        <div class="bg-white p-3.5 rounded-xl border border-slate-300 shadow-sm"><span class="text-xs font-bold text-slate-500 block">杂项支出 Misc Expenses</span><span id="stat-monthly-misc" class="text-lg font-black text-rose-500">RM 0.00</span></div>
+      </div>
+
+      <div class="bg-slate-900 text-white p-5 rounded-2xl shadow-xl space-y-1">
+        <div class="flex justify-between items-center text-slate-400 text-xs font-bold"><span>周期净利润 Nett Profit</span><span id="monthly-days-count" class="text-amber-400">已营业 0 天</span></div>
+        <div id="stat-monthly-nett" class="text-3xl font-black text-emerald-400">RM 0.00</div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-slate-300 overflow-hidden">
+        <div class="px-4 py-3 bg-slate-100 border-b border-slate-200 font-black text-sm text-slate-800">周期内每日数据明细</div>
+        <div id="monthly-table-container" class="max-h-64 overflow-y-auto no-scrollbar"></div>
+      </div>
+    </section>
+
+    <!-- 5. 设置 TAB -->
+    <section id="tab-settings" class="space-y-4 hidden">
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-emerald-300 bg-emerald-50/20 space-y-3">
+        <div class="flex items-center space-x-2 text-emerald-800"><i class="fa-solid fa-plus-circle text-emerald-600 text-lg"></i><h2 class="font-black text-sm">添加新海鲜 / 临时鱼类</h2></div>
+        <div class="space-y-2 text-xs font-bold">
+          <div><label class="block text-slate-600 mb-1">海鲜名称 (中英名)</label><input type="text" id="new-p-name" placeholder="例如: 红鲷鱼 (Ikan Merah)" class="w-full border border-slate-300 rounded-lg p-2"></div>
+          <div>
+            <label class="block text-slate-600 mb-1">计价单位 Unit</label>
+            <select id="new-p-unit" onchange="toggleUnitInputs()" class="w-full border border-slate-300 rounded-lg p-2 bg-white">
+              <option value="g">按克数称重 (g)</option>
+              <option value="pack">按包/份 (Pack)</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div><label id="lbl-new-price" class="block text-slate-600 mb-1">卖价 RM (per 100g)</label><input type="number" step="0.1" id="new-p-price" placeholder="例: 9.60" class="w-full border border-slate-300 rounded-lg p-2 font-black"></div>
+            <div><label id="lbl-new-cost" class="block text-slate-600 mb-1">本钱 RM (per 1 kg)</label><input type="number" step="0.1" id="new-p-cost" placeholder="例: 28.00" class="w-full border border-slate-300 rounded-lg p-2 font-black text-rose-600"></div>
+          </div>
+          <button onclick="addNewProduct()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 rounded-lg text-xs shadow">确认添加新菜品</button>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-amber-200 bg-amber-50/30 space-y-3">
+        <div class="flex items-center space-x-2 text-amber-800"><i class="fa-solid fa-calculator text-amber-600 text-lg"></i><h2 class="font-black text-sm">到货真实成本换算器</h2></div>
+        <p class="text-xs text-slate-500 font-bold">输入总金额与处理后实拿重量，自动计算 100g 成本。</p>
+        <div class="space-y-2 text-xs font-bold">
+          <div><select id="calc-product-select" class="w-full border border-slate-300 rounded-lg p-2 bg-white"></select></div>
+          <div class="grid grid-cols-2 gap-2">
+            <div><label class="block text-slate-600 mb-1">单据总金额 (RM)</label><input type="number" id="calc-total-amount" placeholder="例如: 1430.80" class="w-full border border-slate-300 rounded-lg p-2 font-black"></div>
+            <div><label class="block text-slate-600 mb-1">处理后重量 (KG)</label><input type="number" id="calc-clean-weight" placeholder="例如: 34.1" class="w-full border border-slate-300 rounded-lg p-2 font-black"></div>
+          </div>
+          <button onclick="calculateAndApplyCost()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-black py-2 rounded-lg text-xs shadow">自动换算并更新成本</button>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-300 space-y-3">
+        <h2 class="font-black text-slate-800 text-sm border-b pb-2">⚙️ 菜品售价与成本管理</h2>
+        <div id="settings-product-list" class="space-y-3"></div>
+        <button onclick="saveProductSettings()" class="w-full bg-slate-900 text-white font-black py-2.5 rounded-lg text-xs">保存产品配置</button>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-300 space-y-3 text-xs font-bold">
+        <h2 class="font-black text-slate-800 text-sm border-b pb-2">🏢 固定开销 Fixed Fee</h2>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-slate-500 mb-1">每月租金 Monthly Rent</label><input type="number" id="setting-rent-monthly" value="1500" class="w-full border border-slate-300 rounded-lg p-2 font-black"></div>
+          <div><label class="block text-slate-500 mb-1">工人薪水 Worker Daily</label><input type="number" id="setting-worker-daily" value="100" class="w-full border border-slate-300 rounded-lg p-2 font-black"></div>
+        </div>
+        <button onclick="saveExpenseSettings()" class="w-full bg-slate-900 text-white font-black py-2 rounded-lg text-xs">保存固定费用</button>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-300 space-y-2 text-xs font-bold">
+        <h2 class="font-black text-slate-800 text-sm border-b pb-1">💾 数据备份</h2>
+        <div class="flex gap-2">
+          <button onclick="exportData()" class="flex-1 bg-slate-100 text-slate-700 py-2 rounded-lg border border-slate-300">导出数据 Backup</button>
+          <button onclick="clearAllData()" class="flex-1 bg-rose-50 text-rose-600 py-2 rounded-lg border border-rose-200">重置系统 Reset</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    function customRound(val) {
+      const integerPart = Math.floor(val);
+      const decimalPart = val - integerPart;
+      return decimalPart >= 0.80 ? integerPart + 1 : integerPart;
+    }
+
+    function formatRM(val) { return 'RM ' + Number(val).toFixed(2); }
+
+    function getTodayStr() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    const defaultProducts = [
+      { id: 'pari', name: '魔鬼鱼 (Ikan Pari)', unit: 'g', pricePer100g: 9.60, costPer100g: 4.20 },
+      { id: 'siakap', name: '食甲鱼 (Ikan Siakap)', unit: 'g', pricePer100g: 7.60, costPer100g: 1.90 },
+      { id: 'bawal', name: '金鲳鱼 (Bawal Emas)', unit: 'g', pricePer100g: 8.10, costPer100g: 1.85 },
+      { id: 'sotong', name: 'Sotong (每包 250g)', unit: 'pack', pricePerPack: 25.00, costPerPack: 12.00 },
+      { id: 'prawn', name: 'Prawn (每包 350g)', unit: 'pack', pricePerPack: 36.00, costPerPack: 15.00 },
+      { id: 'self_seafood', name: '自带海鲜加工费', unit: 'g', pricePer100g: 3.50, costPer100g: 0.00 }
+    ];
+
+    let products = JSON.parse(localStorage.getItem('ib_products')) || defaultProducts;
+    let orders = JSON.parse(localStorage.getItem('ib_orders')) || [];
+    let expenses = JSON.parse(localStorage.getItem('ib_expenses')) || { monthlyRent: 1500, dailyWorker: 100 };
+    let restDays = JSON.parse(localStorage.getItem('ib_rest_days')) || {}; 
+    let miscExpenses = JSON.parse(localStorage.getItem('ib_misc_expenses')) || [];
+    let cycleArchives = JSON.parse(localStorage.getItem('ib_cycle_archives')) || [];
+
+    let targetDate = getTodayStr();
+    let currentCart = {};
+    let activeProductId = null;
+    let activeAmount = 0; 
+    let selectedSpicy = '普通 / Normal';
+    let selectedFlavor = '招牌 / Standard';
+    let selectedCooking = '普通 / Standard';
+    let cartPayStatus = 'unpaid'; 
+    let editingProductId = null;
+
+    window.onload = function() {
+      document.getElementById('today-date-badge').innerText = getTodayStr();
+      const picker = document.getElementById('target-date-picker');
+      if(picker) picker.value = targetDate;
+      const mPicker = document.getElementById('monthly-picker');
+      if(mPicker) mPicker.value = getTodayStr().slice(0, 7);
+
+      renderProductsPOS();
+      renderKitchenDisplay();
+      updateNextOrderId();
+    };
+
+    function switchTab(tabName) {
+      ['pos', 'kitchen', 'daily', 'monthly', 'settings'].forEach(t => {
+        const el = document.getElementById(`tab-${t}`);
+        if(el) el.classList.add('hidden');
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if(btn) {
+          btn.classList.remove('text-amber-400', 'border-b-4', 'border-amber-400');
+          btn.classList.add('hover:text-white');
+        }
+      });
+
+      const targetEl = document.getElementById(`tab-${tabName}`);
+      if(targetEl) targetEl.classList.remove('hidden');
+      const activeBtn = document.getElementById(`tab-btn-${tabName}`);
+      if(activeBtn) activeBtn.classList.add('text-amber-400', 'border-b-4', 'border-amber-400');
+
+      if (tabName === 'kitchen') renderKitchenDisplay();
+      if (tabName === 'daily') renderDailyReport();
+      if (tabName === 'monthly') renderMonthlyReport();
+      if (tabName === 'settings') renderSettings();
+    }
+
+    function changeTargetDate(val) {
+      if (!val) return;
+      targetDate = val;
+      renderDailyReport();
+    }
+
+    function resetToToday() {
+      targetDate = getTodayStr();
+      const picker = document.getElementById('target-date-picker');
+      if(picker) picker.value = targetDate;
+      renderDailyReport();
+    }
+
+    function startNewCycle() {
+      if (confirm('确认要对当前周期进行结算并开启新周期吗？')) {
+        const archiveId = `Cycle_${Date.now()}`;
+        const activeMonth = getTodayStr().slice(0, 7);
+        cycleArchives.push({ id: archiveId, date: getTodayStr(), month: activeMonth, note: `手动结算周期 (${getTodayStr()})` });
+        localStorage.setItem('ib_cycle_archives', JSON.stringify(cycleArchives));
+        alert('🎉 新周期已成功开启！');
+        renderMonthlyReport();
+      }
+    }
+
+    function renderProductsPOS() {
+      const container = document.getElementById('product-list');
+      if(!container) return;
+      container.innerHTML = '';
+      products.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'p-3 flex items-center justify-between gap-2';
+        let priceText = p.unit === 'g' ? `RM ${p.pricePer100g.toFixed(2)} / 100g` : `RM ${p.pricePerPack.toFixed(2)} / 包`;
+        let costText = p.unit === 'g' ? `(成本: RM ${(p.costPer100g * 10).toFixed(2)} /kg)` : `(成本: RM ${p.costPerPack.toFixed(2)} /包)`;
+
+        div.innerHTML = `
+          <div class="flex-1">
+            <div class="flex items-center gap-1.5">
+              <h4 class="font-black text-slate-800 text-sm">${p.name}</h4>
+              <button onclick="openQuickEditModal('${p.id}')" class="text-[10px] text-blue-600 hover:text-blue-800 font-bold bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">✏️ 改价</button>
+            </div>
+            <div class="flex items-center gap-2 mt-0.5">
+              <span class="text-xs text-amber-800 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">${priceText}</span>
+              <span class="text-[10px] font-bold text-slate-400">${costText}</span>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2">
+            <input type="number" step="0.1" id="input-${p.id}" placeholder="${p.unit === 'g' ? '金额(RM)' : '包数'}" class="w-24 bg-slate-50 border-2 border-slate-300 rounded-lg px-2 py-1.5 text-base font-black text-center focus:ring-2 focus:ring-amber-500 focus:outline-none">
+            <button onclick="openCustomModal('${p.id}')" class="bg-amber-500 hover:bg-amber-600 text-white font-black px-3 py-2 rounded-lg text-xs shadow"><i class="fa-solid fa-plus"></i> 选择</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function openQuickEditModal(id) {
+      editingProductId = id;
+      const p = products.find(item => item.id === id);
+      document.getElementById('quick-edit-title').innerText = `修改 ${p.name}`;
+      const body = document.getElementById('quick-edit-body');
+      if (p.unit === 'g') {
+        body.innerHTML = `
+          <div><label class="block text-slate-600 mb-1">卖价 RM (per 100g):</label><input type="number" step="0.1" id="qe-price" value="${p.pricePer100g}" class="w-full border border-slate-300 rounded-lg p-2 font-black"></div>
+          <div><label class="block text-slate-600 mb-1">进货本钱 RM (per 1 kg):</label><input type="number" step="0.1" id="qe-cost-kg" value="${(p.costPer100g * 10).toFixed(2)}" class="w-full border border-slate-300 rounded-lg p-2 font-black text-rose-600"></div>
+        `;
+      } else {
+        body.innerHTML = `
+          <div><label class="block text-slate-600 mb-1">卖价 RM (per 包):</label><input type="number" step="0.1" id="qe-price" value="${p.pricePerPack}" class="w-full border border-slate-300 rounded-lg p-2 font-black"></div>
+          <div><label class="block text-slate-600 mb-1">本钱 RM (per 包):</label><input type="number" step="0.1" id="qe-cost-pack" value="${p.costPerPack}" class="w-full border border-slate-300 rounded-lg p-2 font-black text-rose-600"></div>
+        `;
+      }
+      document.getElementById('quick-edit-modal').classList.remove('hidden');
+    }
+
+    function closeQuickEditModal() { document.getElementById('quick-edit-modal').classList.add('hidden'); }
+
+    function saveQuickEdit() {
+      const p = products.find(item => item.id === editingProductId);
+      if (p) {
+        const priceVal = parseFloat(document.getElementById('qe-price').value) || 0;
+        if (p.unit === 'g') {
+          const costKgVal = parseFloat(document.getElementById('qe-cost-kg').value) || 0;
+          p.pricePer100g = priceVal;
+          p.costPer100g = Number((costKgVal / 10).toFixed(2));
+        } else {
+          const costPackVal = parseFloat(document.getElementById('qe-cost-pack').value) || 0;
+          p.pricePerPack = priceVal;
+          p.costPerPack = costPackVal;
+        }
+        localStorage.setItem('ib_products', JSON.stringify(products));
+        alert(`✅ ${p.name} 价格与成本已更新！`);
+        closeQuickEditModal();
+        renderProductsPOS();
+        renderSettings();
+      }
+    }
+
+    function openCustomModal(productId) {
+      const input = document.getElementById(`input-${productId}`);
+      const val = parseFloat(input.value);
+      if (!val || val <= 0) { alert('请先输入有效的金额(RM)或包数！'); return; }
+      activeProductId = productId;
+      activeAmount = val;
+      selectedSpicy = '普通 / Normal';
+      selectedFlavor = '招牌 / Standard';
+      selectedCooking = '普通 / Standard';
+      const p = products.find(item => item.id === productId);
+      
+      let titleText = '';
+      if (p.unit === 'g') {
+        titleText = `${p.name} (售价: RM ${val.toFixed(2)})`;
+      } else {
+        titleText = `${p.name} (${val}包)`;
+      }
+      document.getElementById('modal-item-title').innerText = titleText;
+      updateSpicyButtons(); updateFlavorButtons(); updateCookButtons();
+      document.querySelectorAll('.addon-cb').forEach(cb => cb.checked = false);
+      document.getElementById('modal-custom-flavor').value = '';
+      document.getElementById('modal-custom-remark').value = '';
+      document.getElementById('custom-modal').classList.remove('hidden');
+    }
+
+    function closeCustomModal() { document.getElementById('custom-modal').classList.add('hidden'); }
+    function selectSpicy(val) { selectedSpicy = val; updateSpicyButtons(); }
+    function selectFlavor(val) { selectedFlavor = val; updateFlavorButtons(); }
+    function selectCooking(val) { selectedCooking = val; updateCookButtons(); }
+
+    function updateSpicyButtons() {
+      document.querySelectorAll('.spicy-btn').forEach(btn => {
+        btn.className = btn.innerText.includes(selectedSpicy.split(' ')[0]) ? 'spicy-btn bg-amber-100 p-2 rounded-lg border border-amber-400 text-amber-900 font-black' : 'spicy-btn bg-slate-100 p-2 rounded-lg border border-slate-300 font-bold';
+      });
+    }
+    function updateFlavorButtons() {
+      document.querySelectorAll('.flavor-btn').forEach(btn => {
+        btn.className = btn.innerText.includes(selectedFlavor.split(' ')[0]) ? 'flavor-btn bg-amber-100 p-2 rounded-lg border border-amber-400 text-amber-900 font-black' : 'flavor-btn bg-slate-100 p-2 rounded-lg border border-slate-300 font-bold';
+      });
+    }
+    function updateCookButtons() {
+      document.querySelectorAll('.cook-btn').forEach(btn => {
+        btn.className = btn.innerText.includes(selectedCooking.split(' ')[0]) ? 'cook-btn bg-amber-100 p-2 rounded-lg border border-amber-400 text-amber-900 font-black' : 'cook-btn bg-slate-100 p-2 rounded-lg border border-slate-300 font-bold';
+      });
+    }
+
+    function setCartPayStatus(status) {
+      cartPayStatus = status;
+      ['unpaid', 'cash', 'qr'].forEach(s => {
+        const btn = document.getElementById(`pay-btn-${s}`);
+        if(btn) {
+          if (s === status) {
+            if (s === 'unpaid') btn.className = 'py-2 rounded-lg border-2 border-rose-500 bg-rose-500 text-white font-black';
+            if (s === 'cash') btn.className = 'py-2 rounded-lg border-2 border-emerald-600 bg-emerald-600 text-white font-black';
+            if (s === 'qr') btn.className = 'py-2 rounded-lg border-2 border-blue-600 bg-blue-600 text-white font-black';
+          } else {
+            btn.className = 'py-2 rounded-lg border border-slate-300 bg-white text-slate-700 font-bold';
+          }
+        }
+      });
+    }
+
+    function confirmAddToCart() {
+      const product = products.find(p => p.id === activeProductId);
+      let rawAmount = 0, rawCost = 0, displayQtyInfo = '';
+
+      if (product.unit === 'g') {
+        rawAmount = activeAmount;
+        const unitsOf100g = product.pricePer100g > 0 ? (activeAmount / product.pricePer100g) : 0;
+        rawCost = unitsOf100g * product.costPer100g;
+        const calculatedGrams = Math.round(unitsOf100g * 100);
+        displayQtyInfo = `RM ${activeAmount.toFixed(2)} (~${calculatedGrams}g)`;
+      } else {
+        rawAmount = activeAmount * product.pricePerPack;
+        rawCost = activeAmount * product.costPerPack;
+        displayQtyInfo = `${activeAmount}包`;
+      }
+
+      const addons = [];
+      document.querySelectorAll('.addon-cb:checked').forEach(cb => addons.push(cb.value));
+      const inputCustomFlavor = document.getElementById('modal-custom-flavor').value.trim();
+      const finalFlavor = inputCustomFlavor ? `口味: ${inputCustomFlavor}` : selectedFlavor;
+      const customRemark = document.getElementById('modal-custom-remark').value.trim();
+      const cartKey = `${activeProductId}_${Date.now()}`;
+
+      currentCart[cartKey] = {
+        productId: activeProductId, name: product.name, qtyInfo: displayQtyInfo, unit: product.unit,
+        rawAmount: rawAmount, rawCost: rawCost, spicy: selectedSpicy, flavor: finalFlavor,
+        cooking: selectedCooking, addons: addons, remark: customRemark
+      };
+
+      const inputEl = document.getElementById(`input-${activeProductId}`);
+      if(inputEl) inputEl.value = '';
+      closeCustomModal();
+      renderCart();
+    }
+
+    function renderCart() {
+      const container = document.getElementById('cart-items');
+      if(!container) return;
+      container.innerHTML = '';
+      const keys = Object.keys(currentCart);
+      if (keys.length === 0) {
+        container.innerHTML = '<p class="text-slate-400 text-xs font-bold text-center py-4">暂未选择海鲜或商品</p>';
+        document.getElementById('cart-raw-total').innerText = 'RM 0.00';
+        document.getElementById('cart-rounded-total').innerText = 'RM 0.00';
+        return;
+      }
+      let sumRawAmount = 0;
+      keys.forEach(k => {
+        const item = currentCart[k];
+        sumRawAmount += item.rawAmount;
+        let reqText = `🌶️ ${item.spicy} | 🧂 ${item.flavor} | 🍳 ${item.cooking}`;
+        if (item.addons.length > 0) reqText += ` | ${item.addons.join(', ')}`;
+        if (item.remark) reqText += ` | 📝 ${item.remark}`;
+
+        const row = document.createElement('div');
+        row.className = 'bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs space-y-1';
+        row.innerHTML = `
+          <div class="flex justify-between items-center"><span class="font-black text-slate-800 text-sm">${item.name} (${item.qtyInfo})</span>
+            <div class="flex items-center gap-2"><span class="font-bold text-slate-700">RM ${item.rawAmount.toFixed(2)}</span><button onclick="removeFromCart('${k}')" class="text-rose-600 text-sm"><i class="fa-solid fa-circle-xmark"></i></button></div>
+          </div>
+          <div class="text-[11px] font-bold text-amber-800 bg-amber-50 p-1 rounded border border-amber-200">${reqText}</div>
+        `;
+        container.appendChild(row);
+      });
+
+      const discountInput = document.getElementById('cart-discount-input');
+      const discountVal = discountInput ? (parseFloat(discountInput.value) || 0) : 0;
+      const roundedTotal = customRound(sumRawAmount);
+      const finalPayAmount = Math.max(0, roundedTotal - discountVal);
+
+      document.getElementById('cart-raw-total').innerText = formatRM(sumRawAmount);
+      document.getElementById('cart-rounded-total').innerText = formatRM(finalPayAmount);
+    }
+
+    function removeFromCart(key) { delete currentCart[key]; renderCart(); }
+    function clearCurrentCart() { 
+      currentCart = {}; 
+      const discountInput = document.getElementById('cart-discount-input');
+      if(discountInput) discountInput.value = '0';
+      renderCart(); 
+    }
+
+    function submitOrder() {
+      const keys = Object.keys(currentCart);
+      if (keys.length === 0) { alert('清单为空！'); return; }
+      const tableVal = document.getElementById('table-input').value.trim() || '未填桌号';
+      let rawTotal = 0, totalCost = 0;
+      const itemsDetail = keys.map(k => {
+        rawTotal += currentCart[k].rawAmount;
+        totalCost += currentCart[k].rawCost;
+        return { ...currentCart[k] };
+      });
+
+      const discountInput = document.getElementById('cart-discount-input');
+      const discountVal = discountInput ? (parseFloat(discountInput.value) || 0) : 0;
+      const roundedTotal = customRound(rawTotal);
+      const finalAmount = Math.max(0, roundedTotal - discountVal);
+
+      const todayStr = getTodayStr();
+      const todayOrdersCount = orders.filter(o => o.date === todayStr).length;
+      const orderNumStr = '#' + String(todayOrdersCount + 1).padStart(3, '0');
+
+      const newOrder = {
+        id: Date.now(), orderNum: orderNumStr, date: todayStr,
+        time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+        table: tableVal, items: itemsDetail, rawTotal: rawTotal,
+        discount: discountVal, finalAmount: finalAmount, totalCost: totalCost, 
+        status: 'pending', payStatus: cartPayStatus
+      };
+
+      orders.push(newOrder);
+      localStorage.setItem('ib_orders', JSON.stringify(orders));
+      alert(`✅ 开单成功！桌号: ${tableVal} (实收: RM ${finalAmount.toFixed(2)})`);
+      clearCurrentCart();
+      setCartPayStatus('unpaid');
+      updateNextOrderId();
+      renderKitchenDisplay();
+    }
+
+    function updateNextOrderId() {
+      const todayStr = getTodayStr();
+      const count = orders.filter(o => o.date === todayStr).length;
+      const el = document.getElementById('next-order-id');
+      if(el) el.innerText = '#' + String(count + 1).padStart(3, '0');
+    }
+
+    function renderKitchenDisplay() {
+      const todayStr = getTodayStr();
+      const pendingOrders = orders.filter(o => o.date === todayStr && o.status === 'pending');
+      const badge = document.getElementById('kitchen-badge');
+      const countLabel = document.getElementById('kitchen-pending-count');
+      if (badge) {
+        if (pendingOrders.length > 0) {
+          badge.innerText = pendingOrders.length;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+      }
+      if (countLabel) countLabel.innerText = `${pendingOrders.length} 待做`;
+
+      const container = document.getElementById('kitchen-orders-list');
+      if(!container) return;
+      container.innerHTML = '';
+      if (pendingOrders.length === 0) {
+        container.innerHTML = '<div class="bg-white p-8 rounded-xl text-center text-slate-400 font-bold text-sm">所有菜品均已出餐 Done!</div>';
+        return;
+      }
+      pendingOrders.forEach(o => {
+        const card = document.createElement('div');
+        const isUnpaid = o.payStatus === 'unpaid';
+        card.className = `rounded-xl shadow-md border-2 ${isUnpaid ? 'border-rose-500 bg-rose-50/20' : 'border-amber-400 bg-white'} overflow-hidden space-y-2 p-3.5`;
+        
+        let itemsHtml = o.items.map(i => `
+          <div class="border-b border-slate-100 pb-2">
+            <div class="flex justify-between items-center text-sm font-black text-slate-800">
+              <span>${i.name}</span>
+              <span class="bg-amber-100 text-amber-900 px-2 py-0.5 rounded text-xs font-black">${i.qtyInfo}</span>
+            </div>
+            <div class="text-xs font-black text-rose-600 mt-1 bg-rose-50 p-1.5 rounded border border-rose-200">🌶️ ${i.spicy} | 🧂 ${i.flavor} | 🍳 ${i.cooking}</div>
+          </div>
+        `).join('');
+
+        let payBadgeText = isUnpaid ? '❌ 未付款' : (o.payStatus === 'cash' ? '💵 已付现金' : '📱 已付 QR');
+        let discountBadgeHtml = o.discount > 0 ? `<span class="bg-rose-100 text-rose-700 text-[10px] font-black px-1.5 py-0.5 rounded ml-1">已优惠 RM ${o.discount.toFixed(2)}</span>` : '';
+
+        let actionButtonsHtml = '';
+        if (isUnpaid) {
+          actionButtonsHtml = `
+            <div class="grid grid-cols-2 gap-2 mt-2">
+              <button onclick="completeOrderWithPayment(${o.id}, 'cash')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 rounded-lg text-xs shadow flex items-center justify-center gap-1">
+                <i class="fa-solid fa-money-bill-wave"></i> 💵 收 RM ${o.finalAmount} 现金出餐
+              </button>
+              <button onclick="completeOrderWithPayment(${o.id}, 'qr')" class="bg-blue-600 hover:bg-blue-700 text-white font-black py-2.5 rounded-lg text-xs shadow flex items-center justify-center gap-1">
+                <i class="fa-solid fa-qrcode"></i> 📱 收 RM ${o.finalAmount} QR出餐
+              </button>
+            </div>
+          `;
+        } else {
+          actionButtonsHtml = `
+            <button onclick="completeOrderWithPayment(${o.id}, '${o.payStatus}')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-lg text-sm shadow flex items-center justify-center gap-2 mt-2">
+              <i class="fa-solid fa-circle-check"></i> ✅ 确认出餐 Complete
+            </button>
+          `;
+        }
+
+        card.innerHTML = `
+          <div class="flex justify-between items-center border-b pb-2">
+            <div class="flex items-center gap-1.5">
+              <span class="text-base font-black bg-slate-900 text-amber-400 px-2 py-0.5 rounded">${o.orderNum}</span>
+              <span class="font-black text-slate-800 text-sm">桌号: ${o.table}</span>
+              <button onclick="editOrderTable(${o.id})" class="text-[10px] text-blue-600 font-bold bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded border border-blue-200">✏️ 改桌号</button>
+            </div>
+            <span class="${isUnpaid ? 'bg-rose-600' : 'bg-emerald-600'} text-white font-black text-xs px-2 py-0.5 rounded">${payBadgeText}</span>
+          </div>
+
+          <div class="bg-slate-900 text-white p-2.5 rounded-lg flex justify-between items-center">
+            <div>
+              <span class="text-xs font-bold text-slate-300 block">${isUnpaid ? '需收总金额 Total Due:' : '实收总金额 Total Paid:'}</span>
+              ${discountBadgeHtml}
+            </div>
+            <span class="text-xl font-black text-amber-400">RM ${o.finalAmount.toFixed(2)}</span>
+          </div>
+
+          <div class="space-y-2">${itemsHtml}</div>
+          
+          ${actionButtonsHtml}
+
+          <button onclick="cancelOrder(${o.id})" class="w-full bg-rose-100 hover:bg-rose-200 text-rose-700 font-black py-1.5 rounded-lg text-xs border border-rose-300 mt-1">
+            取消此订单
+          </button>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // 💡 新增：修改订单桌号功能
+    function editOrderTable(orderId) {
+      const order = orders.find(o => o.id === orderId);
+      if (order) {
+        const newTable = prompt("请输入新的桌号 (例如: 54 或 Takeaway):", order.table);
+        if (newTable !== null && newTable.trim() !== "") {
+          order.table = newTable.trim();
+          localStorage.setItem('ib_orders', JSON.stringify(orders));
+          renderKitchenDisplay();
+          renderDailyReport();
+        }
+      }
+    }
+
+    function completeOrderWithPayment(orderId, payMethod) {
+      const order = orders.find(o => o.id === orderId);
+      if (order) {
+        order.status = 'done';
+        order.payStatus = payMethod;
+        localStorage.setItem('ib_orders', JSON.stringify(orders));
+        renderKitchenDisplay();
+        renderDailyReport();
+      }
+    }
+
+    function cancelOrder(orderId) {
+      if (confirm('确认取消此订单？')) {
+        const order = orders.find(o => o.id === orderId);
+        if (order) { order.status = 'cancelled'; localStorage.setItem('ib_orders', JSON.stringify(orders)); renderKitchenDisplay(); renderDailyReport(); }
+      }
+    }
+
+    function toggleUnitInputs() {
+      const unit = document.getElementById('new-p-unit').value;
+      if (unit === 'g') {
+        document.getElementById('lbl-new-price').innerText = '卖价 RM (per 100g)';
+        document.getElementById('lbl-new-cost').innerText = '本钱 RM (per 1 kg)';
+      } else {
+        document.getElementById('lbl-new-price').innerText = '卖价 RM (per 包)';
+        document.getElementById('lbl-new-cost').innerText = '本钱 RM (per 包)';
+      }
+    }
+
+    function addNewProduct() {
+      const name = document.getElementById('new-p-name').value.trim();
+      const unit = document.getElementById('new-p-unit').value;
+      const price = parseFloat(document.getElementById('new-p-price').value);
+      const costRaw = parseFloat(document.getElementById('new-p-cost').value) || 0;
+      if (!name || !price || price <= 0) { alert('请输入正确信息！'); return; }
+      const newId = `custom_${Date.now()}`;
+      const newP = { id: newId, name: name, unit: unit };
+      if (unit === 'g') { newP.pricePer100g = price; newP.costPer100g = Number((costRaw / 10).toFixed(2)); }
+      else { newP.pricePerPack = price; newP.costPerPack = costRaw; }
+      products.push(newP);
+      localStorage.setItem('ib_products', JSON.stringify(products));
+      alert(`🎉 成功添加: ${name}`);
+      document.getElementById('new-p-name').value = ''; document.getElementById('new-p-price').value = ''; document.getElementById('new-p-cost').value = '';
+      renderProductsPOS(); renderSettings();
+    }
+
+    function deleteProduct(id) {
+      if (confirm('确认删除？')) {
+        products = products.filter(p => p.id !== id);
+        localStorage.setItem('ib_products', JSON.stringify(products));
+        renderProductsPOS(); renderSettings();
+      }
+    }
+
+    function addMiscExpense() {
+      const cat = document.getElementById('misc-category').value;
+      const remark = document.getElementById('misc-remark').value.trim() || cat;
+      const amount = parseFloat(document.getElementById('misc-amount').value);
+      if (!amount || amount <= 0) { alert('请输入金额！'); return; }
+      miscExpenses.push({ id: Date.now(), date: targetDate, category: cat, remark: remark, amount: amount });
+      localStorage.setItem('ib_misc_expenses', JSON.stringify(miscExpenses));
+      document.getElementById('misc-remark').value = ''; document.getElementById('misc-amount').value = '';
+      renderDailyReport();
+    }
+
+    function deleteMiscExpense(id) {
+      miscExpenses = miscExpenses.filter(m => m.id !== id);
+      localStorage.setItem('ib_misc_expenses', JSON.stringify(miscExpenses));
+      renderDailyReport();
+    }
+
+    function renderDailyReport() {
+      const isRest = !!restDays[targetDate];
+      const restToggle = document.getElementById('rest-day-toggle');
+      if(restToggle) restToggle.checked = isRest;
+      const dateDisplay = document.getElementById('daily-date-display');
+      if(dateDisplay) dateDisplay.innerText = `当前目标日期: ${targetDate}`;
+
+      const validTargetOrders = orders.filter(o => o.date === targetDate && o.status !== 'cancelled');
+      const targetMisc = miscExpenses.filter(m => m.date === targetDate);
+
+      let cashSales = 0, qrSales = 0, totalCogs = 0, totalMisc = 0;
+      validTargetOrders.forEach(o => {
+        if (o.payStatus === 'cash') cashSales += o.finalAmount;
+        else if (o.payStatus === 'qr') qrSales += o.finalAmount;
+        totalCogs += o.totalCost;
+      });
+      targetMisc.forEach(m => totalMisc += m.amount);
+
+      const totalSales = cashSales + qrSales;
+      const dailyRent = isRest ? 0 : (expenses.monthlyRent / 26);
+      const dailyWorker = isRest ? 0 : Number(expenses.dailyWorker);
+      const totalExpenses = dailyRent + dailyWorker;
+      const nettProfit = totalSales - totalCogs - totalExpenses - totalMisc;
+
+      const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.innerText = val; };
+      setVal('stat-daily-cash', formatRM(cashSales));
+      setVal('stat-daily-qr', formatRM(qrSales));
+      setVal('stat-daily-cogs', formatRM(totalCogs));
+      setVal('stat-daily-expenses', formatRM(totalExpenses));
+      setVal('stat-daily-misc', formatRM(totalMisc));
+      setVal('stat-daily-nett', formatRM(nettProfit));
+
+      setVal('daily-worker-cost', isRest ? 'RM 0.00 (Rest)' : formatRM(expenses.dailyWorker));
+      setVal('daily-rent-cost', isRest ? 'RM 0.00 (Rest)' : formatRM(expenses.monthlyRent / 26));
+
+      const miscContainer = document.getElementById('today-misc-list');
+      if(miscContainer) {
+        miscContainer.innerHTML = '';
+        if (targetMisc.length === 0) {
+          miscContainer.innerHTML = '<p class="text-slate-400 text-xs font-bold text-center py-1">该日尚无杂项开销</p>';
+        } else {
+          targetMisc.forEach(m => {
+            const d = document.createElement('div');
+            d.className = 'flex justify-between items-center text-xs font-bold py-1';
+            d.innerHTML = `<span class="text-slate-700">[${m.category}] ${m.remark}</span><div class="flex items-center gap-2"><span class="text-rose-600">RM ${m.amount.toFixed(2)}</span><button onclick="deleteMiscExpense(${m.id})" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button></div>`;
+            miscContainer.appendChild(d);
+          });
+        }
+      }
+
+      const listContainer = document.getElementById('daily-orders-list');
+      if(listContainer) {
+        listContainer.innerHTML = '';
+        const allTargetOrders = orders.filter(o => o.date === targetDate);
+        if (allTargetOrders.length === 0) {
+          listContainer.innerHTML = '<p class="text-slate-400 text-xs font-bold text-center py-4">该日尚无订单记录</p>';
+          return;
+        }
+
+        allTargetOrders.slice().reverse().forEach(o => {
+          const div = document.createElement('div');
+          if (o.status === 'cancelled') {
+            div.className = 'p-3 text-xs font-bold bg-slate-100 opacity-60 flex justify-between items-center';
+            div.innerHTML = `<div><span class="font-black text-slate-500 line-through">${o.orderNum} (桌号: ${o.table})</span><span class="text-rose-600 ml-2">[已取消]</span></div><span class="font-black text-slate-400 line-through">RM ${o.finalAmount.toFixed(2)}</span>`;
+          } else {
+            const isUnpaid = o.payStatus === 'unpaid';
+            let payBadge = isUnpaid ? '<span class="text-rose-600 font-black">🔴 未付</span>' : (o.payStatus === 'cash' ? '<span class="text-emerald-600 font-black">💵 现金</span>' : '<span class="text-blue-600 font-black">📱 QR</span>');
+            div.className = `p-3 text-xs font-bold space-y-1 ${isUnpaid ? 'bg-rose-50 border-l-4 border-rose-500' : 'hover:bg-slate-50'}`;
+            div.innerHTML = `
+              <div class="flex justify-between items-center">
+                <div class="flex items-center gap-1.5"><span class="font-black text-slate-800">${o.orderNum}</span><span class="bg-slate-200 px-1.5 py-0.5 rounded text-[10px]">桌号: ${o.table}</span> ${payBadge}</div>
+                <span class="font-black text-emerald-600 text-sm">RM ${o.finalAmount.toFixed(2)}</span>
+              </div>
+              <div class="flex justify-between items-center pt-1 text-[11px]">
+                <span class="text-slate-400">${o.time} | ${o.status === 'done' ? '已出餐' : '制作中'}</span>
+                <button onclick="cancelOrder(${o.id})" class="text-rose-600">取消订单</button>
+              </div>
+            `;
+          }
+          listContainer.appendChild(div);
+        });
+      }
+    }
+
+    function toggleRestDay(checked) {
+      if (checked) restDays[targetDate] = true;
+      else delete restDays[targetDate];
+      localStorage.setItem('ib_rest_days', JSON.stringify(restDays));
+      renderDailyReport();
+    }
+
+    function renderMonthlyReport() {
+      const selectedMonth = document.getElementById('monthly-picker').value;
+      if (!selectedMonth) return;
+
+      const monthOrders = orders.filter(o => o.date.startsWith(selectedMonth) && o.status !== 'cancelled');
+      const monthMisc = miscExpenses.filter(m => m.date.startsWith(selectedMonth));
+      const activeDaysCount = new Set(monthOrders.map(o => o.date)).size;
+
+      let monthSales = 0, monthCogs = 0, monthMiscTotal = 0;
+      monthOrders.forEach(o => { monthSales += o.finalAmount; monthCogs += o.totalCost; });
+      monthMisc.forEach(m => monthMiscTotal += m.amount);
+
+      const monthFixedCost = (activeDaysCount * Number(expenses.dailyWorker)) + Number(expenses.monthlyRent);
+      const monthNett = monthSales - monthCogs - monthFixedCost - monthMiscTotal;
+
+      const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.innerText = val; };
+      setVal('stat-monthly-sales', formatRM(monthSales));
+      setVal('stat-monthly-cogs', formatRM(monthCogs));
+      setVal('stat-monthly-fixed', formatRM(monthFixedCost));
+      setVal('stat-monthly-misc', formatRM(monthMiscTotal));
+      setVal('stat-monthly-nett', formatRM(monthNett));
+      setVal('monthly-days-count', `周期内已营业 ${activeDaysCount} 天`);
+
+      const tableContainer = document.getElementById('monthly-table-container');
+      if(!tableContainer) return;
+      const dailyGroup = {};
+      monthOrders.forEach(o => {
+        if (!dailyGroup[o.date]) dailyGroup[o.date] = { sales: 0, cogs: 0, count: 0 };
+        dailyGroup[o.date].sales += o.finalAmount;
+        dailyGroup[o.date].cogs += o.totalCost;
+        dailyGroup[o.date].count += 1;
+      });
+
+      const dates = Object.keys(dailyGroup).sort().reverse();
+      if (dates.length === 0) {
+        tableContainer.innerHTML = '<p class="text-slate-400 text-xs font-bold text-center py-4">该周期无销售记录</p>';
+        return;
+      }
+
+      let html = `<table class="w-full text-left text-xs font-bold border-collapse">
+        <thead><tr class="bg-slate-100 text-slate-600 border-b"><th class="p-2">日期</th><th class="p-2">单数</th><th class="p-2">营业额</th><th class="p-2">成本</th></tr></thead>
+        <tbody class="divide-y divide-slate-100">`;
+      dates.forEach(d => {
+        const item = dailyGroup[d];
+        html += `<tr><td class="p-2 font-black text-slate-800">${d}</td><td class="p-2 text-slate-500">${item.count} 单</td><td class="p-2 font-black text-blue-600">RM ${item.sales.toFixed(2)}</td><td class="p-2 text-rose-600">RM ${item.cogs.toFixed(2)}</td></tr>`;
+      });
+      html += `</tbody></table>`;
+      tableContainer.innerHTML = html;
+    }
+
+    function renderSettings() {
+      const select = document.getElementById('calc-product-select');
+      if(select) {
+        select.innerHTML = '';
+        products.filter(p => p.unit === 'g').forEach(p => {
+          const opt = document.createElement('option'); opt.value = p.id; opt.innerText = p.name; select.appendChild(opt);
+        });
+      }
+      const container = document.getElementById('settings-product-list');
+      if(!container) return;
+      container.innerHTML = '';
+      products.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2 text-xs font-bold';
+        const isDefault = defaultProducts.some(dp => dp.id === p.id);
+        let priceVal = p.unit === 'g' ? p.pricePer100g : p.pricePerPack;
+        let costVal = p.unit === 'g' ? (p.costPer100g * 10).toFixed(2) : p.costPerPack;
+        div.innerHTML = `
+          <div class="font-black text-slate-800 flex justify-between items-center"><span>${p.name}</span>${!isDefault ? `<button onclick="deleteProduct('${p.id}')" class="text-rose-600">删除</button>` : ''}</div>
+          <div class="grid grid-cols-2 gap-2">
+            <div><label class="text-slate-500 block mb-0.5">售价</label><input type="number" step="0.1" id="set-price-${p.id}" value="${priceVal}" class="w-full border rounded p-1.5 font-black"></div>
+            <div><label class="text-slate-500 block mb-0.5">本钱</label><input type="number" step="0.1" id="set-cost-${p.id}" value="${costVal}" class="w-full border rounded p-1.5 font-black text-rose-600"></div>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+      const rentEl = document.getElementById('setting-rent-monthly');
+      if(rentEl) rentEl.value = expenses.monthlyRent;
+      const workerEl = document.getElementById('setting-worker-daily');
+      if(workerEl) workerEl.value = expenses.dailyWorker;
+    }
+
+    function calculateAndApplyCost() {
+      const productId = document.getElementById('calc-product-select').value;
+      const totalAmount = parseFloat(document.getElementById('calc-total-amount').value);
+      const cleanWeightKg = parseFloat(document.getElementById('calc-clean-weight').value);
+      if (!totalAmount || !cleanWeightKg || cleanWeightKg <= 0) { alert('请输入有效数据！'); return; }
+      const costPerKg = totalAmount / cleanWeightKg;
+      const costPer100g = costPerKg / 10;
+      const product = products.find(p => p.id === productId);
+      if (product) {
+        product.costPer100g = Number(costPer100g.toFixed(2));
+        localStorage.setItem('ib_products', JSON.stringify(products));
+        alert(`🎉 100g 成本更新为: RM ${costPer100g.toFixed(2)}`);
+        renderSettings(); renderProductsPOS();
+      }
+    }
+
+    function saveProductSettings() {
+      products.forEach(p => {
+        const priceInput = document.getElementById(`set-price-${p.id}`);
+        const costInput = document.getElementById(`set-cost-${p.id}`);
+        if (p.unit === 'g') {
+          if(priceInput) p.pricePer100g = parseFloat(priceInput.value) || 0;
+          if(costInput) p.costPer100g = Number(((parseFloat(costInput.value) || 0) / 10).toFixed(2));
+        } else {
+          if(priceInput) p.pricePerPack = parseFloat(priceInput.value) || 0;
+          if(costInput) p.costPerPack = parseFloat(costInput.value) || 0;
+        }
+      });
+      localStorage.setItem('ib_products', JSON.stringify(products));
+      alert('保存成功！');
+      renderProductsPOS();
+    }
+
+    function saveExpenseSettings() {
+      expenses = {
+        monthlyRent: parseFloat(document.getElementById('setting-rent-monthly').value) || 0,
+        dailyWorker: parseFloat(document.getElementById('setting-worker-daily').value) || 0
+      };
+      localStorage.setItem('ib_expenses', JSON.stringify(expenses));
+      alert('保存成功！');
+    }
+
+    function exportData() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
+        products: products, orders: orders, expenses: expenses, restDays: restDays, miscExpenses: miscExpenses, cycleArchives: cycleArchives
+      }));
+      const dlAnchorElem = document.createElement('a');
+      dlAnchorElem.setAttribute("href", dataStr);
+      dlAnchorElem.setAttribute("download", `ikan_bakar_pos_backup_${getTodayStr()}.json`);
+      dlAnchorElem.click();
+    }
+
+    function clearAllData() {
+      if (confirm('警告：确认清空所有数据？')) { localStorage.clear(); location.reload(); }
+    }
+  </script>
+</body>
+</html>
