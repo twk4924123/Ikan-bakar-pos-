@@ -111,8 +111,8 @@
             <button onclick="closeCustomModal()" class="text-slate-400 text-lg hover:text-slate-700"><i class="fa-solid fa-xmark"></i></button>
           </div>
           
-          <!-- 新增：部位选择 -->
-          <div>
+          <!-- 魔鬼鱼专属：部位选择容器 -->
+          <div id="part-selection-container">
             <label class="block text-xs font-bold text-slate-600 mb-1">鱼身部位 / Fish Part:</label>
             <div class="grid grid-cols-3 gap-1.5 text-xs font-bold">
               <button onclick="selectPart('头部 / Head')" class="part-btn bg-slate-100 p-2 rounded-lg border border-slate-300 font-bold">头部 Head</button>
@@ -245,7 +245,7 @@
       <div class="bg-amber-50 text-slate-900 p-4 rounded-xl shadow-md space-y-2 border border-amber-300">
         <div class="flex justify-between items-center">
           <span class="font-black text-sm flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left"></i> 历史账目查阅/修改日期:</span>
-          <button onclick="resetToCurrentBusinessDate()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
+          <button onclick="r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
         </div>
         <input type="date" id="target-date-picker" onchange="changeTargetDate(this.value)" class="w-full bg-white border-2 border-slate-900 rounded-lg p-2 text-sm font-black text-slate-900">
       </div>
@@ -479,7 +479,7 @@
     let currentCart = {};
     let activeProductId = null;
     let activeAmount = 0; 
-    let selectedPart = '身体 / Body'; // 新增部位状态
+    let selectedPart = '身体 / Body'; 
     let selectedSpicy = '普通 / Normal';
     let selectedFlavor = '招牌 / Standard';
     let selectedCooking = '普通 / Standard';
@@ -557,7 +557,7 @@
       renderDailyReport();
     }
 
-    function resetToCurrentBusinessDate() {
+    function r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8() {
       targetDate = currentBusinessDate;
       const picker = document.getElementById('target-date-picker');
       if(picker) picker.value = targetDate;
@@ -587,7 +587,7 @@
       csvContent += "单号,桌号,下单时间,付款方式,菜品详情,优惠(RM),实收金额(RM),海鲜成本(RM),订单状态\n";
 
       validOrders.forEach(o => {
-        let itemsStr = o.items.map(i => `${i.name}(${i.qtyInfo})[${i.part}/${i.spicy}/${i.flavor}]`).join(' | ');
+        let itemsStr = o.items.map(i => `${i.name}(${i.qtyInfo})[${i.part ? i.part + '/' : ''}${i.spicy}/${i.flavor}]`).join(' | ');
         let payMethodName = o.payStatus === 'cash' ? '现金' : (o.payStatus === 'qr' ? 'QR' : '未付');
         csvContent += `"${o.orderNum}","${o.table}","${o.time}","${payMethodName}","${itemsStr}",${o.discount.toFixed(2)},${o.finalAmount.toFixed(2)},${o.totalCost.toFixed(2)},"${o.status}"\n`;
       });
@@ -646,8 +646,8 @@
         const div = document.createElement('div');
         div.className = 'p-3 flex items-center justify-between gap-2';
         let priceText = p.unit === 'g' ? `RM ${p.pricePer100g.toFixed(2)} / 100g` : `RM ${p.pricePerPack.toFixed(2)} / 包`;
-        let costText = p.unit === 'g' ? `(成本: RM ${(p.costPer100g * 10).toFixed(2)} /kg)` : `(成本: RM ${p.costPerPack.toFixed(2)} /包)`;
-
+        
+        // 已移除本钱显示
         div.innerHTML = `
           <div class="flex-1">
             <div class="flex items-center gap-1.5">
@@ -656,7 +656,6 @@
             </div>
             <div class="flex items-center gap-2 mt-0.5">
               <span class="text-xs text-amber-800 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">${priceText}</span>
-              <span class="text-[10px] font-bold text-slate-400">${costText}</span>
             </div>
           </div>
           <div class="flex items-center space-x-2">
@@ -716,7 +715,7 @@
       if (!val || val <= 0) { alert('请先输入有效的金额(RM)或包数！'); return; }
       activeProductId = productId;
       activeAmount = val;
-      selectedPart = '身体 / Body'; // 默认选身体
+      selectedPart = '身体 / Body'; 
       selectedSpicy = '普通 / Normal';
       selectedFlavor = '招牌 / Standard';
       selectedCooking = '普通 / Standard';
@@ -729,7 +728,17 @@
         titleText = `${p.name} (${val}包)`;
       }
       document.getElementById('modal-item-title').innerText = titleText;
-      updatePartButtons(); updateSpicyButtons(); updateFlavorButtons(); updateCookButtons();
+
+      // 仅魔鬼鱼 (id === 'pari') 显示部位选择，其余隐藏部位选择
+      const partContainer = document.getElementById('part-selection-container');
+      if (productId === 'pari') {
+        partContainer.classList.remove('hidden');
+        updatePartButtons();
+      } else {
+        partContainer.classList.add('hidden');
+      }
+
+      updateSpicyButtons(); updateFlavorButtons(); updateCookButtons();
       document.querySelectorAll('.addon-cb').forEach(cb => cb.checked = false);
       document.getElementById('modal-custom-flavor').value = '';
       document.getElementById('modal-custom-remark').value = '';
@@ -802,9 +811,12 @@
       const customRemark = document.getElementById('modal-custom-remark').value.trim();
       const cartKey = `${activeProductId}_${Date.now()}`;
 
+      // 如果不是魔鬼鱼，不记录部位
+      const itemPart = (activeProductId === 'pari') ? selectedPart : '';
+
       currentCart[cartKey] = {
         productId: activeProductId, name: product.name, qtyInfo: displayQtyInfo, unit: product.unit,
-        rawAmount: rawAmount, rawCost: rawCost, part: selectedPart, spicy: selectedSpicy, flavor: finalFlavor,
+        rawAmount: rawAmount, rawCost: rawCost, part: itemPart, spicy: selectedSpicy, flavor: finalFlavor,
         cooking: selectedCooking, addons: addons, remark: customRemark
       };
 
@@ -829,7 +841,12 @@
       keys.forEach(k => {
         const item = currentCart[k];
         sumRawAmount += item.rawAmount;
-        let reqText = `🐟 ${item.part} | 🌶️ ${item.spicy} | 🧂 ${item.flavor} | 🍳 ${item.cooking}`;
+        let reqText = '';
+        if (item.part) {
+          reqText = `🐟 ${item.part} | 🌶️ ${item.spicy} | 🧂 ${item.flavor} | 🍳 ${item.cooking}`;
+        } else {
+          reqText = `🌶️ ${item.spicy} | 🧂 ${item.flavor} | 🍳 ${item.cooking}`;
+        }
         if (item.addons.length > 0) reqText += ` | ${item.addons.join(', ')}`;
         if (item.remark) reqText += ` | 📝 ${item.remark}`;
 
@@ -927,15 +944,18 @@
         const isUnpaid = o.payStatus === 'unpaid';
         card.className = `rounded-xl shadow-md border-2 ${isUnpaid ? 'border-rose-500 bg-rose-50/20' : 'border-amber-400 bg-white'} overflow-hidden space-y-2 p-3.5`;
         
-        let itemsHtml = o.items.map(i => `
-          <div class="border-b border-slate-100 pb-2">
-            <div class="flex justify-between items-center text-sm font-black text-slate-800">
-              <span>${i.name}</span>
-              <span class="bg-amber-100 text-amber-900 px-2 py-0.5 rounded text-xs font-black">${i.qtyInfo}</span>
+        let itemsHtml = o.items.map(i => {
+          let specText = i.part ? `🐟 <b>[${i.part}]</b> | 🌶️ ${i.spicy} | 🧂 ${i.flavor} | 🍳 ${i.cooking}` : `🌶️ ${i.spicy} | 🧂 ${i.flavor} | 🍳 ${i.cooking}`;
+          return `
+            <div class="border-b border-slate-100 pb-2">
+              <div class="flex justify-between items-center text-sm font-black text-slate-800">
+                <span>${i.name}</span>
+                <span class="bg-amber-100 text-amber-900 px-2 py-0.5 rounded text-xs font-black">${i.qtyInfo}</span>
+              </div>
+              <div class="text-xs font-black text-rose-600 mt-1 bg-rose-50 p-1.5 rounded border border-rose-200">${specText}</div>
             </div>
-            <div class="text-xs font-black text-rose-600 mt-1 bg-rose-50 p-1.5 rounded border border-rose-200">🐟 <b>[${i.part}]</b> | 🌶️ ${i.spicy} | 🧂 ${i.flavor} | 🍳 ${i.cooking}</div>
-          </div>
-        `).join('');
+          `;
+        }).join('');
 
         let payBadgeText = isUnpaid ? '❌ 未付款' : (o.payStatus === 'cash' ? '💵 已付现金' : '📱 已付 QR');
 
