@@ -798,10 +798,9 @@
 
         card.innerHTML = `
           <div class="flex justify-between items-center border-b pb-2">
-            <div class="flex items-center gap-1.5">
+            <div class="flex items-center gap-2">
               <span class="text-base font-black bg-slate-900 text-amber-400 px-2 py-0.5 rounded">${o.orderNum}</span>
               <span class="font-black text-slate-800 text-sm">桌号: ${o.table}</span>
-              <button onclick="editOrderTable(${o.id})" class="text-[10px] text-blue-600 font-bold bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded border border-blue-200">✏️ 改桌号</button>
             </div>
             <span class="${isUnpaid ? 'bg-rose-600' : 'bg-emerald-600'} text-white font-black text-xs px-2 py-0.5 rounded">${payBadgeText}</span>
           </div>
@@ -824,20 +823,6 @@
         `;
         container.appendChild(card);
       });
-    }
-
-    // 💡 新增：修改订单桌号功能
-    function editOrderTable(orderId) {
-      const order = orders.find(o => o.id === orderId);
-      if (order) {
-        const newTable = prompt("请输入新的桌号 (例如: 54 或 Takeaway):", order.table);
-        if (newTable !== null && newTable.trim() !== "") {
-          order.table = newTable.trim();
-          localStorage.setItem('ib_orders', JSON.stringify(orders));
-          renderKitchenDisplay();
-          renderDailyReport();
-        }
-      }
     }
 
     function completeOrderWithPayment(orderId, payMethod) {
