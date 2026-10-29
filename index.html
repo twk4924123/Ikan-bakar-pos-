@@ -433,10 +433,12 @@
 
       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-300 space-y-2 text-xs font-bold">
         <h2 class="font-black text-slate-800 text-sm border-b pb-1">💾 数据备份</h2>
-        <div class="flex gap-2">
-          <button onclick="exportData()" class="flex-1 bg-slate-100 text-slate-700 py-2 rounded-lg border border-slate-300">导出JSON备份</button>
-          <button onclick="clearAllData()" class="flex-1 bg-rose-50 text-rose-600 py-2 rounded-lg border border-rose-200">重置系统 Reset</button>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="exportData()" class="bg-slate-100 text-slate-700 py-2 rounded-lg border border-slate-300">导出本次备份</button>
+          <button onclick="triggerImport()" class="bg-amber-100 text-amber-900 py-2 rounded-lg border border-amber-300 font-black">导入备份</button>
+          <input type="file" id="import-file-input" accept=".json" class="hidden" onchange="importData(event)">
         </div>
+        <button onclick="clearAllData()" class="w-full bg-rose-50 text-rose-600 py-2 rounded-lg border border-rose-200 mt-2">重置系统 Reset</button>
       </div>
     </section>
 
@@ -647,7 +649,6 @@
         div.className = 'p-3 flex items-center justify-between gap-2';
         let priceText = p.unit === 'g' ? `RM ${p.pricePer100g.toFixed(2)} / 100g` : `RM ${p.pricePerPack.toFixed(2)} / 包`;
         
-        // 已移除本钱显示
         div.innerHTML = `
           <div class="flex-1">
             <div class="flex items-center gap-1.5">
@@ -729,7 +730,6 @@
       }
       document.getElementById('modal-item-title').innerText = titleText;
 
-      // 仅魔鬼鱼 (id === 'pari') 显示部位选择，其余隐藏部位选择
       const partContainer = document.getElementById('part-selection-container');
       if (productId === 'pari') {
         partContainer.classList.remove('hidden');
@@ -811,7 +811,6 @@
       const customRemark = document.getElementById('modal-custom-remark').value.trim();
       const cartKey = `${activeProductId}_${Date.now()}`;
 
-      // 如果不是魔鬼鱼，不记录部位
       const itemPart = (activeProductId === 'pari') ? selectedPart : '';
 
       currentCart[cartKey] = {
@@ -1354,6 +1353,43 @@
       dlAnchorElem.setAttribute("href", dataStr);
       dlAnchorElem.setAttribute("download", `ikan_bakar_pos_backup_${currentBusinessDate}.json`);
       dlAnchorElem.click();
+    }
+
+    function triggerImport() {
+      document.getElementById('import-file-input').click();
+    }
+
+    function importData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const content = JSON.parse(e.target.result);
+          if (content.products && content.orders) {
+            if (confirm('⚠️ 导入备份将覆盖当前的全部数据，是否继续？')) {
+              localStorage.setItem('ib_products', JSON.stringify(content.products));
+              localStorage.setItem('ib_orders', JSON.stringify(content.orders));
+              if (content.expenses) localStorage.setItem('ib_expenses', JSON.stringify(content.expenses));
+              if (content.restDays) localStorage.setItem('ib_rest_days', JSON.stringify(content.restDays));
+              if (content.miscExpenses) localStorage.setItem('ib_misc_expenses', JSON.stringify(content.miscExpenses));
+              if (content.cycleArchives) localStorage.setItem('ib_cycle_archives', JSON.stringify(content.cycleArchives));
+              if (content.dailyLabor) localStorage.setItem('ib_daily_labor', JSON.stringify(content.dailyLabor));
+              if (content.businessDate) localStorage.setItem('ib_business_date', content.businessDate);
+
+              alert('✅ 备份导入成功！页面将自动刷新。');
+              location.reload();
+            }
+          } else {
+            alert('❌ 备份文件格式错误，缺少必要的数据！');
+          }
+        } catch (err) {
+          alert('❌ 解析备份文件失败，请确保是正确的JSON文件！');
+        }
+      };
+      reader.readAsText(file);
+      // 清空input防止连续导入同一个文件不触发onchange
+      event.target.value = '';
     }
 
     function clearAllData() {
