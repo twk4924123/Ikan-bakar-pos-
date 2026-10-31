@@ -247,7 +247,7 @@
       <div class="bg-amber-50 text-slate-900 p-4 rounded-xl shadow-md space-y-2 border border-amber-300">
         <div class="flex justify-between items-center">
           <span class="font-black text-sm flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left"></i> 历史账目查阅/修改日期:</span>
-          <button onclick="r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
+          <button onclick="resetToCurrentBusinessDate()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
         </div>
         <input type="date" id="target-date-picker" onchange="changeTargetDate(this.value)" class="w-full bg-white border-2 border-slate-900 rounded-lg p-2 text-sm font-black text-slate-900">
       </div>
@@ -517,16 +517,32 @@
         if(textEl) textEl.innerText = text || "同步中...";
       } else {
         indicator.className = "text-[10px] px-2 py-0.5 rounded font-bold bg-emerald-500 text-white flex items-center gap-1";
-        if(icon) icon.className = "fa-solid fa-cloud-check";
+        if(icon) icon.className = "fa-solid fa-cloud";
         if(textEl) textEl.innerText = text || "已就绪(云端)";
       }
     }
 
-    // ⚡ 强效 JSONP 跨域传输方法 ⚡
+    // ⚡ 强效带超时的 JSONP 跨域传输方法 ⚡
     function sendJsonp(params, callback) {
+      if (!GOOGLE_SCRIPT_URL) return;
       setSyncStatus(true, "与云端通信中...");
-      const cbName = 'google_pos_cb_' + Date.now();
+      const cbName = 'google_pos_cb_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+      
+      let isFinished = false;
+      const timeoutId = setTimeout(function() {
+        if (!isFinished) {
+          isFinished = true;
+          delete window[cbName];
+          const script = document.getElementById(cbName);
+          if (script) script.remove();
+          setSyncStatus(false, "已就绪(本地)");
+        }
+      }, 5000); // 5秒超时自动恢复，绝不卡死
+
       window[cbName] = function(data) {
+        if (isFinished) return;
+        isFinished = true;
+        clearTimeout(timeoutId);
         delete window[cbName];
         const script = document.getElementById(cbName);
         if (script) script.remove();
@@ -547,6 +563,9 @@
       script.id = cbName;
       script.src = GOOGLE_SCRIPT_URL + '?' + queryArr.join('&');
       script.onerror = function() {
+        if (isFinished) return;
+        isFinished = true;
+        clearTimeout(timeoutId);
         delete window[cbName];
         script.remove();
         setSyncStatus(false, "已就绪(本地)");
@@ -556,7 +575,6 @@
 
     // 从 Google 表格获取最新订单
     function fetchOrdersFromCloud() {
-      if (!GOOGLE_SCRIPT_URL) return;
       sendJsonp({ action: 'getOrders' }, function(res) {
         if (res && res.status === 'success' && Array.isArray(res.data)) {
           orders = res.data;
@@ -571,7 +589,6 @@
 
     // 提交订单到 Google 表格
     function saveOrderToCloud(newOrder) {
-      if (!GOOGLE_SCRIPT_URL) return;
       sendJsonp({ action: 'saveOrder', order: newOrder }, function(res) {
         console.log("云端写入成功:", res);
         fetchOrdersFromCloud();
@@ -580,7 +597,6 @@
 
     // 更新订单状态到 Google 表格
     function updateOrderToCloud(orderId, updateFields) {
-      if (!GOOGLE_SCRIPT_URL) return;
       sendJsonp({ action: 'updateOrderStatus', id: orderId, ...updateFields }, function(res) {
         console.log("云端更新成功:", res);
         fetchOrdersFromCloud();
@@ -605,100 +621,7 @@
       renderKitchenDisplay();
       updateNextOrderId();
 
-      // 首次连接并开启每 6 秒轮询
-      fetchOrdersFromCloud();
-      setInterval(fetchOrdersFromCloud, 6000);
-    };
-
-    // 从 Google 云端数据库拉取所有数据 (突破跨域 JSONP)
-    function fetchOrdersFromCloud() {
-      if (!GOOGLE_SCRIPT_URL) return;
-      setSyncStatus(true, "拉取云端数据...");
-
-      // 移除旧的 JSONP 脚本节点
-      const oldScript = document.getElementById('jsonp-script');
-      if (oldScript) oldScript.remove();
-
-      // 创建新的 script 脚本标签进行跨域读取
-      const script = document.createElement('script');
-      script.id = 'jsonp-script';
-      script.src = `${GOOGLE_SCRIPT_URL}?action=getOrders&callback=handleGoogleSheetData&t=${Date.now()}`;
-      script.onerror = function() {
-        console.warn("JSONP 拉取数据遇到阻碍，保持本地缓存模式");
-        if (orders && orders.length > 0) {
-          setSyncStatus(false, "已就绪(本地)", false);
-        } else {
-          setSyncStatus(false, "离线模式", true);
-        }
-      };
-      document.body.appendChild(script);
-    }
-
-    // 提交新单到云端 (使用网页 Form/POST 无感跨域提交)
-    function saveOrderToCloud(newOrder) {
-      if (!GOOGLE_SCRIPT_URL) return;
-      setSyncStatus(true, "保存到云端...");
-
-      try {
-        const payload = JSON.stringify({ action: 'saveOrder', order: newOrder });
-        fetch(GOOGLE_SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: payload
-        }).then(() => {
-          setTimeout(fetchOrdersFromCloud, 1200);
-        }).catch(err => {
-          console.error("提交单据失败:", err);
-          setSyncStatus(false, "保存失败", true);
-        });
-      } catch (e) {
-        console.error(e);
-      }
-    }
-
-    // 更新订单状态到云端
-    function updateOrderToCloud(orderId, updateFields) {
-      if (!GOOGLE_SCRIPT_URL) return;
-      setSyncStatus(true, "更新云端状态...");
-
-      try {
-        const payload = JSON.stringify({ action: 'updateOrderStatus', id: orderId, ...updateFields });
-        fetch(GOOGLE_SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: payload
-        }).then(() => {
-          setTimeout(fetchOrdersFromCloud, 1000);
-        }).catch(err => {
-          console.error("状态同步失败:", err);
-          setSyncStatus(false, "状态保存失败", true);
-        });
-      } catch (e) {
-        console.error(e);
-      }
-    }
-
-    window.onload = function() {
-      const todayBadge = document.getElementById('today-date-badge');
-      if (todayBadge) todayBadge.innerText = `营业日: ${currentBusinessDate}`;
-
-      const busLabel = document.getElementById('current-bus-date-label');
-      if (busLabel) busLabel.innerText = currentBusinessDate;
-      const actBusDisplay = document.getElementById('active-bus-date-display');
-      if (actBusDisplay) actBusDisplay.innerText = currentBusinessDate;
-
-      const picker = document.getElementById('target-date-picker');
-      if (picker) picker.value = targetDate;
-      const mPicker = document.getElementById('monthly-picker');
-      if (mPicker) mPicker.value = currentBusinessDate.slice(0, 7);
-
-      renderProductsPOS();
-      renderKitchenDisplay();
-      updateNextOrderId();
-
-      // 启动云端首次同步，并开启 8 秒自动轮询实时数据
+      // 首次连接并开启每 8 秒轮询
       fetchOrdersFromCloud();
       setInterval(fetchOrdersFromCloud, 8000);
     };
@@ -761,7 +684,7 @@
       renderDailyReport();
     }
 
-    function r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8() {
+    function resetToCurrentBusinessDate() {
       vibrate(15);
       targetDate = currentBusinessDate;
       const picker = document.getElementById('target-date-picker');
@@ -1430,7 +1353,7 @@
                 <div class="flex items-center gap-1.5"><span class="font-black text-slate-800">${o.orderNum}</span><span class="bg-slate-200 px-1.5 py-0.5 rounded text-[10px]">桌号: ${o.table}</span> ${payBadge}</div>
                 <span class="font-black text-emerald-600 text-sm">RM ${o.finalAmount.toFixed(2)}</span>
               </div>
-              <div class="flex justify-between items-center pt-1 text-[11px]">
+              <div class="flex items-center justify-between pt-1 text-[11px]">
                 <span class="text-slate-400">${o.time} | ${o.status === 'done' ? '已出餐' : '制作中'}</span>
                 <button onclick="cancelOrder(${o.id})" class="text-rose-600">取消订单</button>
               </div>
