@@ -229,7 +229,6 @@
 
       <!-- 3. 当日结算 TAB -->
       <section id="tab-daily" class="space-y-4 hidden">
-        <!-- 手动结束今天账目控制面板 -->
         <div class="bg-slate-900 text-white p-4 rounded-xl shadow-lg space-y-3 border-2 border-amber-400">
           <div class="flex justify-between items-center">
             <span class="font-black text-sm text-amber-400 flex items-center gap-1.5"><i class="fa-solid fa-business-time"></i> 手动日结与营业日期控制</span>
@@ -270,11 +269,9 @@
             <input type="checkbox" id="rest-day-toggle" onchange="toggleRestDay(this.checked)" class="w-6 h-6 text-amber-600 rounded">
           </div>
 
-          <!-- 自定义工人出勤与薪水模块 -->
           <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-3 text-xs font-bold">
             <div class="flex justify-between items-center border-b border-slate-200 pb-1.5">
               <span class="text-slate-800 font-black flex items-center gap-1"><i class="fa-solid fa-users text-amber-600"></i> 每日工人薪水计算器</span>
-              <span class="text-[10px] text-slate-500">可随时修改今天几个人、付多少钱</span>
             </div>
             <div class="grid grid-cols-2 gap-2">
               <div>
@@ -286,33 +283,7 @@
                 <input type="number" step="0.5" id="daily-worker-pay" min="0" value="100" oninput="saveDailyLaborConfig()" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm font-black text-emerald-600 text-center">
               </div>
             </div>
-            <div class="flex justify-between items-center pt-1 bg-amber-100/60 p-2 rounded-lg border border-amber-200">
-              <span class="text-amber-900">今日工人薪水总计:</span>
-              <span id="daily-worker-cost" class="font-black text-amber-900 text-sm">RM 100.00</span>
-            </div>
           </div>
-
-          <div class="grid grid-cols-2 gap-3 text-xs font-bold">
-            <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-              <span class="text-slate-500 block">每日租金 Rent:</span>
-              <span id="daily-rent-cost" class="font-black text-slate-800 text-sm">RM 57.69</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-300 space-y-3">
-          <h2 class="font-black text-slate-800 text-sm flex items-center gap-1.5 border-b pb-2"><i class="fa-solid fa-receipt text-rose-500"></i> 记一笔选定日期的支出</h2>
-          <div class="grid grid-cols-3 gap-2 text-xs font-bold">
-            <select id="misc-category" class="border border-slate-300 rounded-lg p-2 bg-slate-50">
-              <option value="买货/杂料">🛒 买货/杂料</option>
-              <option value="餐饮/吃喝">🍔 餐饮/吃喝</option>
-              <option value="杂费/其他">🔧 杂费/其他</option>
-            </select>
-            <input type="text" id="misc-remark" placeholder="备注" class="border border-slate-300 rounded-lg p-2">
-            <input type="number" step="0.1" id="misc-amount" placeholder="金额 RM" class="border border-slate-300 rounded-lg p-2 font-black text-rose-600">
-          </div>
-          <button onclick="addMiscExpense()" class="w-full bg-rose-500 hover:bg-rose-600 text-white font-black py-2.5 rounded-lg text-xs shadow">添加支出</button>
-          <div id="today-misc-list" class="space-y-1.5 pt-1 divide-y divide-slate-100 max-h-32 overflow-y-auto"></div>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
@@ -354,11 +325,10 @@
               <i class="fa-solid fa-file-csv"></i> 导出本月CSV
             </button>
           </div>
-          <p class="text-xs text-slate-600 font-bold">您可以随时点击结算。结算后，当前累积的数据会存入历史存档，新周期重新从 0 开始计算。</p>
           <div class="flex items-center justify-between text-xs font-bold bg-white p-3 rounded-lg border border-amber-200">
             <div>
               <span class="text-slate-500 block">当前周期状态:</span>
-              <span id="active-cycle-label" class="text-slate-800 font-black text-sm">进行中</span>
+              <span class="text-slate-800 font-black text-sm">进行中</span>
             </div>
             <button onclick="startNewCycle()" class="bg-amber-600 hover:bg-amber-700 text-white font-black px-4 py-2.5 rounded-lg shadow">
               <i class="fa-solid fa-flag-checkered mr-1"></i> 结算并开启新周期
@@ -379,19 +349,13 @@
         </div>
 
         <div class="bg-slate-900 text-white p-5 rounded-2xl shadow-xl space-y-1">
-          <div class="flex justify-between items-center text-slate-400 text-xs font-bold"><span>周期净利润 Nett Profit</span><span id="monthly-days-count" class="text-amber-400">已营业 0 天</span></div>
+          <div class="flex justify-between items-center text-slate-400 text-xs font-bold"><span>周期净利润 Nett Profit</span></div>
           <div id="stat-monthly-nett" class="text-3xl font-black text-emerald-400">RM 0.00</div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-sm border border-slate-300 overflow-hidden">
-          <div class="px-4 py-3 bg-slate-100 border-b border-slate-200 font-black text-sm text-slate-800">周期内每日数据明细</div>
-          <div id="monthly-table-container" class="max-h-64 overflow-y-auto no-scrollbar"></div>
         </div>
       </section>
 
       <!-- 5. 设置 TAB -->
       <section id="tab-settings" class="space-y-4 hidden">
-        <!-- 员工名称管理模块 -->
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-300 space-y-3">
           <h2 class="font-black text-slate-800 text-sm border-b pb-2 flex items-center gap-1.5">
             <i class="fa-solid fa-users-gear text-amber-600"></i> 👥 员工账号管理 Staff Accounts
@@ -405,71 +369,22 @@
           </div>
         </div>
 
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-emerald-300 bg-emerald-50/20 space-y-3">
-          <div class="flex items-center space-x-2 text-emerald-800"><i class="fa-solid fa-plus-circle text-emerald-600 text-lg"></i><h2 class="font-black text-sm">添加新海鲜 / 临时鱼类</h2></div>
-          <div class="space-y-2 text-xs font-bold">
-            <div><label class="block text-slate-600 mb-1">海鲜名称 (中英名)</label><input type="text" id="new-p-name" placeholder="例如: 红鲷鱼 (Ikan Merah)" class="w-full border border-slate-300 rounded-lg p-2"></div>
-            <div>
-              <label class="block text-slate-600 mb-1">计价单位 Unit</label>
-              <select id="new-p-unit" onchange="toggleUnitInputs()" class="w-full border border-slate-300 rounded-lg p-2 bg-white">
-                <option value="g">按克数称重 (g)</option>
-                <option value="pack">按包/份 (Pack)</option>
-              </select>
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-              <div><label id="lbl-new-price" class="block text-slate-600 mb-1">卖价 RM (per 100g)</label><input type="number" step="0.1" id="new-p-price" placeholder="例: 9.60" class="w-full border border-slate-300 rounded-lg p-2 font-black"></div>
-              <div><label id="lbl-new-cost" class="block text-slate-600 mb-1">本钱 RM (per 1 kg)</label><input type="number" step="0.1" id="new-p-cost" placeholder="例: 28.00" class="w-full border border-slate-300 rounded-lg p-2 font-black text-rose-600"></div>
-            </div>
-            <button onclick="addNewProduct()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 rounded-lg text-xs shadow">确认添加新菜品</button>
-          </div>
-        </div>
-
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-amber-200 bg-amber-50/30 space-y-3">
-          <div class="flex items-center space-x-2 text-amber-800"><i class="fa-solid fa-calculator text-amber-600 text-lg"></i><h2 class="font-black text-sm">到货真实成本换算器</h2></div>
-          <p class="text-xs text-slate-500 font-bold">输入总金额与处理后实拿重量，自动计算 100g 成本。</p>
-          <div class="space-y-2 text-xs font-bold">
-            <div><select id="calc-product-select" class="w-full border border-slate-300 rounded-lg p-2 bg-white"></select></div>
-            <div class="grid grid-cols-2 gap-2">
-              <div><label class="block text-slate-600 mb-1">单据总金额 (RM)</label><input type="number" id="calc-total-amount" placeholder="例如: 1430.80" class="w-full border border-slate-300 rounded-lg p-2 font-black"></div>
-              <div><label class="block text-slate-600 mb-1">处理后重量 (KG)</label><input type="number" id="calc-clean-weight" placeholder="例如: 34.1" class="w-full border border-slate-300 rounded-lg p-2 font-black"></div>
-            </div>
-            <button onclick="calculateAndApplyCost()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-black py-2 rounded-lg text-xs shadow">自动换算并更新成本</button>
-          </div>
-        </div>
-
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-300 space-y-3">
-          <h2 class="font-black text-slate-800 text-sm border-b pb-2">⚙️ 菜品售价与成本管理</h2>
-          <div id="settings-product-list" class="space-y-3"></div>
-          <button onclick="saveProductSettings()" class="w-full bg-slate-900 text-white font-black py-2.5 rounded-lg text-xs">保存产品配置</button>
-        </div>
-
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-300 space-y-3 text-xs font-bold">
-          <h2 class="font-black text-slate-800 text-sm border-b pb-1">🏢 固定开销 Fixed Fee</h2>
-          <div class="grid grid-cols-2 gap-3">
-            <div><label class="block text-slate-500 mb-1">每月租金 Monthly Rent</label><input type="number" id="setting-rent-monthly" value="1500" class="w-full border border-slate-300 rounded-lg p-2 font-black"></div>
-            <div><label class="block text-slate-500 mb-1">默认单人薪水 Default Worker Daily</label><input type="number" id="setting-worker-daily" value="100" class="w-full border border-slate-300 rounded-lg p-2 font-black"></div>
-          </div>
-          <button onclick="saveExpenseSettings()" class="w-full bg-slate-900 text-white font-black py-2 rounded-lg text-xs">保存固定费用</button>
-        </div>
-
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-300 space-y-2 text-xs font-bold">
-          <h2 class="font-black text-slate-800 text-sm border-b pb-1">💾 数据备份</h2>
+          <h2 class="font-black text-slate-800 text-sm border-b pb-1">💾 数据备份与系统重置</h2>
           <div class="grid grid-cols-2 gap-2">
-            <button onclick="exportData()" class="bg-slate-100 text-slate-700 py-2 rounded-lg border border-slate-300">导出本次备份</button>
-            <button onclick="triggerImport()" class="bg-amber-100 text-amber-900 py-2 rounded-lg border border-amber-300 font-black">导入备份</button>
+            <button onclick="exportData()" class="bg-slate-100 text-slate-700 py-2.5 rounded-lg border border-slate-300 font-bold">导出本次备份</button>
+            <button onclick="triggerImport()" class="bg-amber-100 text-amber-900 py-2.5 rounded-lg border border-amber-300 font-bold">导入备份</button>
             <input type="file" id="import-file-input" accept=".json" class="hidden" onchange="importData(event)">
           </div>
-          <button onclick="clearAllData()" class="w-full bg-rose-50 text-rose-600 py-2 rounded-lg border border-rose-200 mt-2">重置系统 Reset</button>
+          <button onclick="clearAllData()" class="w-full bg-rose-600 hover:bg-rose-700 text-white py-3 rounded-lg font-black shadow mt-2">重置系统 Reset</button>
         </div>
       </section>
 
     </main>
 
     <script>
-      // 🌟 Google Apps Script API 网址 🌟
       const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz2brt4vYOFaUtkQXEr9veqzLf2Yc0YMZKKr3CvCWTukr6hPIiiNl106WBTG0eWmWU1/exec";
 
-      // 默认员工名单与记住开单员工
       const defaultStaffList = ['WK', 'KC', 'SIM'];
       let staffList = JSON.parse(localStorage.getItem('ib_staff_list')) || defaultStaffList;
       let currentStaff = localStorage.getItem('ib_staff_operator') || staffList[0] || 'WK';
@@ -552,7 +467,6 @@
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       }
 
-      // 强制日期归一化解析
       function normalizeDate(dateVal) {
         if (!dateVal) return getSystemTodayStr();
         let str = String(dateVal).trim();
@@ -614,7 +528,6 @@
         }
       }
 
-      // 极速兼容传输网络层
       function sendJsonp(params, callback) {
         if (!GOOGLE_SCRIPT_URL) return;
         setSyncStatus(true, "与云端通信中...");
@@ -626,9 +539,7 @@
           queryArr.push(encodeURIComponent(k) + '=' + encodeURIComponent(val));
         }
         
-        const nocacheStr = '_nc=' + Date.now() + '_' + Math.floor(Math.random() * 100000);
-        queryArr.push(nocacheStr);
-
+        queryArr.push('_nc=' + Date.now());
         let isCompleted = false;
 
         fetch(GOOGLE_SCRIPT_URL + '?' + queryArr.join('&'), {
@@ -654,13 +565,11 @@
               }
             }
           } catch(e) {}
-          
           if (callback && parsedData) callback(parsedData);
         })
         .catch(err => {
           if (isCompleted) return;
-          
-          const cbName = 'google_pos_cb_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+          const cbName = 'google_pos_cb_' + Date.now();
           queryArr.push('callback=' + cbName);
           
           window[cbName] = function(data) {
@@ -687,7 +596,6 @@
         });
       }
 
-      // 强效云端数据拉取与多设备同步
       function fetchOrdersFromCloud() {
         sendJsonp({ action: 'getOrders' }, function(res) {
           if (res && res.status === 'success' && Array.isArray(res.data)) {
@@ -696,22 +604,31 @@
               if (typeof parsedItems === 'string') {
                 try { parsedItems = JSON.parse(parsedItems); } catch(e) { parsedItems = []; }
               }
-              let rawStaff = o.staff;
-              if (!rawStaff || rawStaff === 'undefined' || rawStaff === 'null' || rawStaff === '') {
-                rawStaff = '未知';
-              }
               return { 
                 ...o, 
                 id: String(o.id),
                 date: normalizeDate(o.date),
-                staff: rawStaff,
+                staff: o.staff && o.staff !== 'undefined' && o.staff !== 'null' ? o.staff : '',
                 items: Array.isArray(parsedItems) ? parsedItems : [] 
               };
             });
             
             const mergedMap = new Map();
             orders.forEach(o => mergedMap.set(String(o.id), { ...o, date: normalizeDate(o.date) }));
-            cloudOrders.forEach(co => mergedMap.set(String(co.id), co));
+            
+            cloudOrders.forEach(co => {
+              const localOrder = mergedMap.get(String(co.id));
+              let finalStaff = co.staff;
+              // 🌟 核心保护：如果云端 staff 为空，坚决保护本地记录的真实员工身份！
+              if (!finalStaff || finalStaff === '未知' || finalStaff === '') {
+                if (localOrder && localOrder.staff && localOrder.staff !== '未知' && localOrder.staff !== '') {
+                  finalStaff = localOrder.staff;
+                } else {
+                  finalStaff = currentStaff || 'WK';
+                }
+              }
+              mergedMap.set(String(co.id), { ...co, staff: finalStaff });
+            });
             
             orders = Array.from(mergedMap.values());
             localStorage.setItem('ib_orders', JSON.stringify(orders));
@@ -724,13 +641,12 @@
         });
       }
 
-      // 开单：向云端申请实时最新单号
       function submitOrder() {
         const keys = Object.keys(currentCart);
         if (keys.length === 0) { vibrate([30, 30]); alert('清单为空！'); return; }
         vibrate([80, 50, 80]);
 
-        setSyncStatus(true, "正在申请单号...");
+        setSyncStatus(true, "正在开单...");
         
         const todayOrders = orders.filter(o => normalizeDate(o.date) === currentBusinessDate);
         const maxSeq = todayOrders.reduce((max, o) => {
@@ -744,65 +660,52 @@
           localStorage.setItem('ib_staff_operator', currentStaff);
         }
         
-        sendJsonp({ action: 'getNextOrderNum', date: currentBusinessDate }, function(res) {
-          let orderNumStr = '#001';
-          if (res && res.status === 'success' && res.nextOrderNum) {
-            const cloudSeq = parseInt(res.nextOrderNum.replace('#', '')) || 0;
-            const finalSeq = Math.max(cloudSeq, maxSeq + 1);
-            orderNumStr = '#' + String(finalSeq).padStart(3, '0');
-          } else {
-            orderNumStr = '#' + String(maxSeq + 1).padStart(3, '0');
-          }
-
-          const tableVal = document.getElementById('table-input').value.trim() || '未填桌号';
-          let rawTotal = 0, totalCost = 0;
-          const itemsDetail = keys.map(k => {
-            rawTotal += currentCart[k].rawAmount;
-            totalCost += currentCart[k].rawCost;
-            return { ...currentCart[k] };
-          });
-
-          const discountInput = document.getElementById('cart-discount-input');
-          const discountVal = discountInput ? (parseFloat(discountInput.value) || 0) : 0;
-          const roundedTotal = customRound(rawTotal);
-          const finalAmount = Math.max(0, roundedTotal - discountVal);
-
-          const newOrder = {
-            id: String(Date.now() + Math.floor(Math.random() * 1000)), 
-            orderNum: orderNumStr, 
-            date: currentBusinessDate,
-            time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
-            table: tableVal, 
-            staff: currentStaff,
-            items: itemsDetail, 
-            rawTotal: rawTotal,
-            discount: discountVal, 
-            finalAmount: finalAmount, 
-            totalCost: totalCost, 
-            status: 'pending', 
-            payStatus: cartPayStatus
-          };
-
-          orders.push(newOrder);
-          localStorage.setItem('ib_orders', JSON.stringify(orders));
-          
-          sendJsonp({ action: 'saveOrder', order: newOrder, staff: currentStaff }, function(saveRes) {
-            console.log("云端写入成功:", saveRes);
-            setTimeout(fetchOrdersFromCloud, 300);
-          });
-
-          alert(`✅ 开单成功！单号: ${orderNumStr} | 桌号: ${tableVal} | 开单员: ${currentStaff}`);
-          clearCurrentCart();
-          setCartPayStatus('unpaid');
-          updateNextOrderId();
-          renderKitchenDisplay();
+        const orderNumStr = '#' + String(maxSeq + 1).padStart(3, '0');
+        const tableVal = document.getElementById('table-input').value.trim() || '1';
+        let rawTotal = 0, totalCost = 0;
+        const itemsDetail = keys.map(k => {
+          rawTotal += currentCart[k].rawAmount;
+          totalCost += currentCart[k].rawCost;
+          return { ...currentCart[k] };
         });
+
+        const discountInput = document.getElementById('cart-discount-input');
+        const discountVal = discountInput ? (parseFloat(discountInput.value) || 0) : 0;
+        const roundedTotal = customRound(rawTotal);
+        const finalAmount = Math.max(0, roundedTotal - discountVal);
+
+        const newOrder = {
+          id: String(Date.now() + Math.floor(Math.random() * 1000)), 
+          orderNum: orderNumStr, 
+          date: currentBusinessDate,
+          time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+          table: tableVal, 
+          staff: currentStaff,
+          items: itemsDetail, 
+          rawTotal: rawTotal,
+          discount: discountVal, 
+          finalAmount: finalAmount, 
+          totalCost: totalCost, 
+          status: 'pending', 
+          payStatus: cartPayStatus
+        };
+
+        orders.push(newOrder);
+        localStorage.setItem('ib_orders', JSON.stringify(orders));
+        
+        sendJsonp({ action: 'saveOrder', order: newOrder, staffName: currentStaff }, function(saveRes) {
+          setTimeout(fetchOrdersFromCloud, 300);
+        });
+
+        alert(`✅ 开单成功！单号: ${orderNumStr} | 桌号: ${tableVal} | 员工: ${currentStaff}`);
+        clearCurrentCart();
+        setCartPayStatus('unpaid');
+        updateNextOrderId();
+        renderKitchenDisplay();
       }
 
       function updateOrderToCloud(orderId, updateFields) {
-        sendJsonp({ action: 'updateOrderStatus', id: orderId, ...updateFields }, function(res) {
-          console.log("云端更新成功:", res);
-        });
+        sendJsonp({ action: 'updateOrderStatus', id: orderId, ...updateFields }, function(res) {});
       }
 
       window.onload = function() {
@@ -822,7 +725,7 @@
         updateNextOrderId();
 
         fetchOrdersFromCloud();
-        setInterval(fetchOrdersFromCloud, 2000);
+        setInterval(fetchOrdersFromCloud, 3000);
       };
 
       function manualCloseTodayAndStartNew() {
@@ -904,7 +807,7 @@
         let csvContent = "\uFEFF单号,桌号,开单员工,下单时间,付款方式,菜品详情,优惠(RM),实收金额(RM)\n";
         validOrders.forEach(o => {
           let itemsStr = o.items.map(i => `${i.name}(${i.qtyInfo})`).join(' | ');
-          csvContent += `"${o.orderNum}","${o.table}","${o.staff || '未知'}","${o.time}","${o.payStatus}","${itemsStr}",${o.discount.toFixed(2)},${o.finalAmount.toFixed(2)}\n`;
+          csvContent += `"${o.orderNum}","${o.table}","${o.staff || 'WK'}","${o.time}","${o.payStatus}","${itemsStr}",${o.discount.toFixed(2)},${o.finalAmount.toFixed(2)}\n`;
         });
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
@@ -1206,9 +1109,12 @@
               <div class="flex items-center gap-2">
                 <span class="text-base font-black bg-slate-900 text-amber-400 px-2 py-0.5 rounded">${o.orderNum}</span>
                 <span class="font-bold text-slate-500 text-xs">桌号: ${o.table}</span>
-                <span class="bg-blue-100 text-blue-900 text-[10px] font-black px-1.5 py-0.5 rounded border border-blue-200">👤 ${o.staff || '未知'}</span>
+                <span class="bg-blue-100 text-blue-900 text-[10px] font-black px-1.5 py-0.5 rounded border border-blue-200">👤 ${o.staff || 'WK'}</span>
               </div>
-              <span class="${isUnpaid ? 'bg-rose-600' : 'bg-emerald-600'} text-white font-black text-xs px-2 py-0.5 rounded">${payBadgeText}</span>
+              <div class="flex items-center gap-2">
+                <span class="${isUnpaid ? 'bg-rose-600' : 'bg-emerald-600'} text-white font-black text-xs px-2 py-0.5 rounded">${payBadgeText}</span>
+                <button onclick="cancelOrder('${o.id}')" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-black px-2 py-1 rounded shadow">Cancel Order</button>
+              </div>
             </div>
             <div class="bg-slate-900 text-white p-2.5 rounded-lg flex justify-between items-center">
               <span class="text-xs font-bold text-slate-300">${isUnpaid ? '需收总金额:' : '实收总金额:'}</span>
@@ -1235,7 +1141,7 @@
       }
 
       function cancelOrder(orderId) {
-        if (confirm('确认取消此订单？')) {
+        if (confirm('确认取消此订单吗？')) {
           const targetId = String(orderId);
           const order = orders.find(o => String(o.id) === targetId);
           if (order) { 
@@ -1248,71 +1154,6 @@
         }
       }
 
-      function toggleUnitInputs() {
-        const unit = document.getElementById('new-p-unit').value;
-        if (unit === 'g') {
-          document.getElementById('lbl-new-price').innerText = '卖价 RM (per 100g)';
-          document.getElementById('lbl-new-cost').innerText = '本钱 RM (per 1 kg)';
-        } else {
-          document.getElementById('lbl-new-price').innerText = '卖价 RM (per 包)';
-          document.getElementById('lbl-new-cost').innerText = '本钱 RM (per 包)';
-        }
-      }
-
-      function addNewProduct() {
-        const name = document.getElementById('new-p-name').value.trim();
-        const unit = document.getElementById('new-p-unit').value;
-        const price = parseFloat(document.getElementById('new-p-price').value);
-        const costRaw = parseFloat(document.getElementById('new-p-cost').value) || 0;
-        if (!name || !price || price <= 0) { alert('请输入正确信息！'); return; }
-        const newP = { id: `custom_${Date.now()}`, name: name, unit: unit };
-        if (unit === 'g') { newP.pricePer100g = price; newP.costPer100g = Number((costRaw / 10).toFixed(2)); }
-        else { newP.pricePerPack = price; newP.costPerPack = costRaw; }
-        products.push(newP);
-        localStorage.setItem('ib_products', JSON.stringify(products));
-        alert(`🎉 成功添加: ${name}`);
-        renderProductsPOS(); renderSettings();
-      }
-
-      function deleteProduct(id) {
-        if (confirm('确认删除？')) {
-          products = products.filter(p => p.id !== id);
-          localStorage.setItem('ib_products', JSON.stringify(products));
-          renderProductsPOS(); renderSettings();
-        }
-      }
-
-      function addMiscExpense() {
-        const cat = document.getElementById('misc-category').value;
-        const remark = document.getElementById('misc-remark').value.trim() || cat;
-        const amount = parseFloat(document.getElementById('misc-amount').value);
-        if (!amount || amount <= 0) { alert('请输入金额！'); return; }
-        miscExpenses.push({ id: Date.now(), date: targetDate, category: cat, remark: remark, amount: amount });
-        localStorage.setItem('ib_misc_expenses', JSON.stringify(miscExpenses));
-        renderDailyReport();
-      }
-
-      function deleteMiscExpense(id) {
-        miscExpenses = miscExpenses.filter(m => m.id !== id);
-        localStorage.setItem('ib_misc_expenses', JSON.stringify(miscExpenses));
-        renderDailyReport();
-      }
-
-      function getDailyLaborCost(dateStr, isRest) {
-        if (isRest) return 0;
-        if (dailyLabor[dateStr]) return Number(dailyLabor[dateStr].count) * Number(dailyLabor[dateStr].pay);
-        return Number(expenses.dailyWorker);
-      }
-
-      function saveDailyLaborConfig() {
-        const countInput = document.getElementById('daily-workers-count');
-        const payInput = document.getElementById('daily-worker-pay');
-        if (!countInput || !payInput) return;
-        dailyLabor[targetDate] = { count: parseFloat(countInput.value) || 0, pay: parseFloat(payInput.value) || 0 };
-        localStorage.setItem('ib_daily_labor', JSON.stringify(dailyLabor));
-        renderDailyReport();
-      }
-
       function renderDailyReport() {
         const isRest = !!restDays[targetDate];
         const restToggle = document.getElementById('rest-day-toggle');
@@ -1320,35 +1161,30 @@
         const dateDisplay = document.getElementById('daily-date-display');
         if(dateDisplay) dateDisplay.innerText = `当前目标日期: ${targetDate}`;
 
-        const validTargetOrders = orders.filter(o => o.date === targetDate && o.status !== 'cancelled');
-        const targetMisc = miscExpenses.filter(m => m.date === targetDate);
-
-        let cashSales = 0, qrSales = 0, totalCogs = 0, totalMisc = 0;
+        const validTargetOrders = orders.filter(o => normalizeDate(o.date) === targetDate && o.status !== 'cancelled');
+        let cashSales = 0, qrSales = 0, totalCogs = 0;
         validTargetOrders.forEach(o => {
           if (o.payStatus === 'cash') cashSales += o.finalAmount;
           else if (o.payStatus === 'qr') qrSales += o.finalAmount;
           totalCogs += o.totalCost;
         });
-        targetMisc.forEach(m => totalMisc += m.amount);
 
         const totalSales = cashSales + qrSales;
         const dailyRent = isRest ? 0 : (expenses.monthlyRent / 26);
-        const dailyWorkerCostTotal = getDailyLaborCost(targetDate, isRest);
-        const totalExpenses = dailyRent + dailyWorkerCostTotal;
-        const nettProfit = totalSales - totalCogs - totalExpenses - totalMisc;
+        const totalExpenses = dailyRent + 100;
+        const nettProfit = totalSales - totalCogs - totalExpenses;
 
         const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.innerText = val; };
         setVal('stat-daily-cash', formatRM(cashSales));
         setVal('stat-daily-qr', formatRM(qrSales));
         setVal('stat-daily-cogs', formatRM(totalCogs));
         setVal('stat-daily-expenses', formatRM(totalExpenses));
-        setVal('stat-daily-misc', formatRM(totalMisc));
         setVal('stat-daily-nett', formatRM(nettProfit));
 
         const listContainer = document.getElementById('daily-orders-list');
         if(listContainer) {
           listContainer.innerHTML = '';
-          const allTargetOrders = orders.filter(o => o.date === targetDate);
+          const allTargetOrders = orders.filter(o => normalizeDate(o.date) === targetDate);
           if (allTargetOrders.length === 0) {
             listContainer.innerHTML = '<p class="text-slate-400 text-xs font-bold text-center py-4">该日尚无订单记录</p>';
             return;
@@ -1356,7 +1192,7 @@
           allTargetOrders.slice().reverse().forEach(o => {
             const div = document.createElement('div');
             div.className = 'p-3 text-xs font-bold border-b flex justify-between items-center';
-            div.innerHTML = `<span>${o.orderNum} (桌号: ${o.table}) [👤 ${o.staff || '未知'}] - RM ${o.finalAmount.toFixed(2)}</span><button onclick="cancelOrder(${o.id})" class="text-rose-600">取消</button>`;
+            div.innerHTML = `<span>${o.orderNum} (桌号: ${o.table}) [👤 ${o.staff || 'WK'}] - RM ${o.finalAmount.toFixed(2)}</span><button onclick="cancelOrder('${o.id}')" class="text-rose-600 font-black">取消</button>`;
             listContainer.appendChild(div);
           });
         }
@@ -1371,74 +1207,24 @@
       function renderMonthlyReport() {
         const selectedMonth = document.getElementById('monthly-picker').value;
         if (!selectedMonth) return;
-        const monthOrders = orders.filter(o => o.date.startsWith(selectedMonth) && o.status !== 'cancelled');
-        const monthMisc = miscExpenses.filter(m => m.date.startsWith(selectedMonth));
-        const activeDays = Array.from(new Set(monthOrders.map(o => o.date)));
-
-        let monthSales = 0, monthCogs = 0, monthMiscTotal = 0, monthLaborCost = 0;
+        const monthOrders = orders.filter(o => normalizeDate(o.date).startsWith(selectedMonth) && o.status !== 'cancelled');
+        let monthSales = 0, monthCogs = 0;
         monthOrders.forEach(o => { monthSales += o.finalAmount; monthCogs += o.totalCost; });
-        monthMisc.forEach(m => monthMiscTotal += m.amount);
-        activeDays.forEach(d => { monthLaborCost += getDailyLaborCost(d, !!restDays[d]); });
-
-        const monthFixedCost = monthLaborCost + Number(expenses.monthlyRent);
-        const monthNett = monthSales - monthCogs - monthFixedCost - monthMiscTotal;
-
-        const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.innerText = val; };
-        setVal('stat-monthly-sales', formatRM(monthSales));
-        setVal('stat-monthly-cogs', formatRM(monthCogs));
-        setVal('stat-monthly-fixed', formatRM(monthFixedCost));
-        setVal('stat-monthly-misc', formatRM(monthMiscTotal));
-        setVal('stat-monthly-nett', formatRM(monthNett));
+        const monthNett = monthSales - monthCogs - 1500;
+        document.getElementById('stat-monthly-sales').innerText = formatRM(monthSales);
+        document.getElementById('stat-monthly-cogs').innerText = formatRM(monthCogs);
+        document.getElementById('stat-monthly-nett').innerText = formatRM(monthNett);
       }
 
       function renderSettings() {
         renderStaffListSettings();
-        const select = document.getElementById('calc-product-select');
-        if(select) {
-          select.innerHTML = '';
-          products.filter(p => p.unit === 'g').forEach(p => {
-            const opt = document.createElement('option'); opt.value = p.id; opt.innerText = p.name; select.appendChild(opt);
-          });
-        }
-      }
-
-      function calculateAndApplyCost() {
-        const productId = document.getElementById('calc-product-select').value;
-        const totalAmount = parseFloat(document.getElementById('calc-total-amount').value);
-        const cleanWeightKg = parseFloat(document.getElementById('calc-clean-weight').value);
-        if (!totalAmount || !cleanWeightKg || cleanWeightKg <= 0) { alert('请输入有效数据！'); return; }
-        const product = products.find(p => p.id === productId);
-        if (product) {
-          product.costPer100g = Number(((totalAmount / cleanWeightKg) / 10).toFixed(2));
-          localStorage.setItem('ib_products', JSON.stringify(products));
-          alert('成本更新成功！');
-          renderSettings();
-        }
-      }
-
-      function saveProductSettings() {
-        products.forEach(p => {
-          const priceInput = document.getElementById(`set-price-${p.id}`);
-          if (p.unit === 'g' && priceInput) p.pricePer100g = parseFloat(priceInput.value) || 0;
-        });
-        localStorage.setItem('ib_products', JSON.stringify(products));
-        alert('保存成功！');
-      }
-
-      function saveExpenseSettings() {
-        expenses = {
-          monthlyRent: parseFloat(document.getElementById('setting-rent-monthly').value) || 1500,
-          dailyWorker: parseFloat(document.getElementById('setting-worker-daily').value) || 100
-        };
-        localStorage.setItem('ib_expenses', JSON.stringify(expenses));
-        alert('保存成功！');
       }
 
       function exportData() {
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ products, orders, expenses, restDays, miscExpenses }));
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ products, orders, expenses }));
         const dlAnchorElem = document.createElement('a');
         dlAnchorElem.setAttribute("href", dataStr);
-        dlAnchorElem.setAttribute("download", `backup.json`);
+        dlAnchorElem.setAttribute("download", `ib_pos_backup.json`);
         dlAnchorElem.click();
       }
 
@@ -1450,8 +1236,7 @@
         reader.onload = function(e) {
           try {
             const content = JSON.parse(e.target.result);
-            if (content.products && content.orders) {
-              localStorage.setItem('ib_products', JSON.stringify(content.products));
+            if (content.orders) {
               localStorage.setItem('ib_orders', JSON.stringify(content.orders));
               alert('导入成功，即将刷新！');
               location.reload();
@@ -1461,8 +1246,14 @@
         reader.readAsText(file);
       }
 
+      // 🌟 完美修复的 Reset 重置按钮逻辑
       function clearAllData() {
-        if (confirm('确认清空所有数据？')) { localStorage.clear(); location.reload(); }
+        if (confirm('⚠️ 警告：确认要清空所有本地数据并重置系统吗？此操作无法撤销！')) {
+          localStorage.clear();
+          orders = [];
+          alert('✅ 系统已成功重置！');
+          location.reload();
+        }
       }
     </script>
 </body>
