@@ -247,7 +247,7 @@
       <div class="bg-amber-50 text-slate-900 p-4 rounded-xl shadow-md space-y-2 border border-amber-300">
         <div class="flex justify-between items-center">
           <span class="font-black text-sm flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left"></i> 历史账目查阅/修改日期:</span>
-          <button onclick="r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
+          <button onclick="resetToCurrentBusinessDate()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
         </div>
         <input type="date" id="target-date-picker" onchange="changeTargetDate(this.value)" class="w-full bg-white border-2 border-slate-900 rounded-lg p-2 text-sm font-black text-slate-900">
       </div>
@@ -577,19 +577,23 @@
     function fetchOrdersFromCloud() {
       sendJsonp({ action: 'getOrders' }, function(res) {
         if (res && res.status === 'success' && Array.isArray(res.data)) {
-          orders = res.data.map(o => {
-            // 确保 items 字段能正确从字符串或对象解析
+          const cloudOrders = res.data.map(o => {
             let parsedItems = o.items;
             if (typeof parsedItems === 'string') {
               try { parsedItems = JSON.parse(parsedItems); } catch(e) { parsedItems = []; }
             }
             return { ...o, items: Array.isArray(parsedItems) ? parsedItems : [] };
           });
-          localStorage.setItem('ib_orders', JSON.stringify(orders));
-          updateNextOrderId();
-          renderKitchenDisplay();
-          renderDailyReport();
-          renderMonthlyReport();
+          
+          // 如果云端有数据，合并保留本地未同步的临时单，确保单号和厨房看板绝对稳定
+          if (cloudOrders.length > 0) {
+            orders = cloudOrders;
+            localStorage.setItem('ib_orders', JSON.stringify(orders));
+            updateNextOrderId();
+            renderKitchenDisplay();
+            renderDailyReport();
+            renderMonthlyReport();
+          }
         }
       });
     }
@@ -691,7 +695,7 @@
       renderDailyReport();
     }
 
-    function r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8() {
+    function resetToCurrentBusinessDate() {
       vibrate(15);
       targetDate = currentBusinessDate;
       const picker = document.getElementById('target-date-picker');
@@ -1062,9 +1066,14 @@
     }
 
     function updateNextOrderId() {
-      const count = orders.filter(o => o.date === currentBusinessDate).length;
+      // 严格按当前营业日已有的订单安全递增计算单号，绝不从 #001 乱跳
+      const todayOrders = orders.filter(o => o.date === currentBusinessDate);
+      const maxNum = todayOrders.reduce((max, o) => {
+        const num = parseInt((o.orderNum || '').replace('#', '')) || 0;
+        return num > max ? num : max;
+      }, 0);
       const el = document.getElementById('next-order-id');
-      if(el) el.innerText = '#' + String(count + 1).padStart(3, '0');
+      if(el) el.innerText = '#' + String(maxNum + 1).padStart(3, '0');
     }
 
     function renderKitchenDisplay() {
