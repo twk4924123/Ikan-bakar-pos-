@@ -700,7 +700,7 @@
                 ...o, 
                 id: String(o.id),
                 date: normalizeDate(o.date),
-                staff: o.staff || '未知',
+                staff: o.staff && o.staff !== 'undefined' ? o.staff : 'WK',
                 items: Array.isArray(parsedItems) ? parsedItems : [] 
               };
             });
