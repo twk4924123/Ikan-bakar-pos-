@@ -247,7 +247,7 @@
       <div class="bg-amber-50 text-slate-900 p-4 rounded-xl shadow-md space-y-2 border border-amber-300">
         <div class="flex justify-between items-center">
           <span class="font-black text-sm flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left"></i> 历史账目查阅/修改日期:</span>
-          <button onclick="r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
+          <button onclick="resetToCurrentBusinessDate()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
         </div>
         <input type="date" id="target-date-picker" onchange="changeTargetDate(this.value)" class="w-full bg-white border-2 border-slate-900 rounded-lg p-2 text-sm font-black text-slate-900">
       </div>
@@ -447,7 +447,7 @@
   </main>
 
   <script>
-    // 🌟 您部署获取的 4 步骤 Google Apps Script API 网址已直接更新到此处 🌟
+    // 🌟 您部署获取的 4 步骤 Google Apps Script API 网址 🌟
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwJ0D1U5frr7RAlwaKoBIJMLNNYKUaUVxF1IAEWaym3lyW441EeMYOxbYdnBoviLlVp/exec";
 
     // 触觉震动辅助函数
@@ -518,23 +518,95 @@
       } else {
         indicator.className = "text-[10px] px-2 py-0.5 rounded font-bold bg-emerald-500 text-white flex items-center gap-1";
         icon.className = "fa-solid fa-cloud-check";
-        textEl.innerText = text || "已完成同步";
+        textEl.innerText = text || "已就绪(云端)";
       }
     }
 
-    // JSONP 回调处理方法
-    window.handleGoogleSheetData = function(cloudOrders) {
-      if (Array.isArray(cloudOrders)) {
-        orders = cloudOrders;
-        localStorage.setItem('ib_orders', JSON.stringify(orders));
-        updateNextOrderId();
-        renderKitchenDisplay();
-        renderDailyReport();
-        renderMonthlyReport();
-        setSyncStatus(false, "已就绪(云端)");
-      } else {
-        setSyncStatus(false, "已就绪(空数据)");
-      }
+    // 全局通用 JSONP 辅助请求函数 (强效穿透 CORS 跨域)
+    function sendJsonpRequest(params, successCallback) {
+      setSyncStatus(true, "与云端通信中...");
+      const callbackName = 'google_cb_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+
+      window[callbackName] = function(response) {
+        delete window[callbackName];
+        const scriptEl = document.getElementById(callbackName);
+        if (scriptEl) scriptEl.remove();
+        if (successCallback) successCallback(response);
+      };
+
+      const queryString = Object.keys(params)
+        .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(typeof params[key] === 'object' ? JSON.stringify(params[key]) : params[key]))
+        .join('&');
+
+      const script = document.createElement('script');
+      script.id = callbackName;
+      script.src = `${GOOGLE_SCRIPT_URL}?${queryString}&callback=${callbackName}&_=${Date.now()}`;
+      script.onerror = function() {
+        delete window[callbackName];
+        script.remove();
+        console.warn("JSONP通信异常，使用本地缓存模式");
+        setSyncStatus(false, "已就绪(本地)");
+      };
+      document.body.appendChild(script);
+    }
+
+    // 从 Google 云端数据库拉取所有数据
+    function fetchOrdersFromCloud() {
+      if (!GOOGLE_SCRIPT_URL) return;
+      sendJsonpRequest({ action: 'getOrders' }, function(cloudOrders) {
+        if (Array.isArray(cloudOrders)) {
+          orders = cloudOrders;
+          localStorage.setItem('ib_orders', JSON.stringify(orders));
+          updateNextOrderId();
+          renderKitchenDisplay();
+          renderDailyReport();
+          renderMonthlyReport();
+          setSyncStatus(false, "已就绪(云端)");
+        } else {
+          setSyncStatus(false, "已就绪(云端)");
+        }
+      });
+    }
+
+    // 提交新单到云端
+    function saveOrderToCloud(newOrder) {
+      if (!GOOGLE_SCRIPT_URL) return;
+      sendJsonpRequest({ action: 'saveOrder', order: newOrder }, function(res) {
+        console.log("云端保存成功:", res);
+        fetchOrdersFromCloud();
+      });
+    }
+
+    // 更新订单状态到云端
+    function updateOrderToCloud(orderId, updateFields) {
+      if (!GOOGLE_SCRIPT_URL) return;
+      sendJsonpRequest({ action: 'updateOrderStatus', id: orderId, ...updateFields }, function(res) {
+        console.log("云端更新成功:", res);
+        fetchOrdersFromCloud();
+      });
+    }
+
+    window.onload = function() {
+      const todayBadge = document.getElementById('today-date-badge');
+      if (todayBadge) todayBadge.innerText = `营业日: ${currentBusinessDate}`;
+
+      const busLabel = document.getElementById('current-bus-date-label');
+      if (busLabel) busLabel.innerText = currentBusinessDate;
+      const actBusDisplay = document.getElementById('active-bus-date-display');
+      if (actBusDisplay) actBusDisplay.innerText = currentBusinessDate;
+
+      const picker = document.getElementById('target-date-picker');
+      if (picker) picker.value = targetDate;
+      const mPicker = document.getElementById('monthly-picker');
+      if (mPicker) mPicker.value = currentBusinessDate.slice(0, 7);
+
+      renderProductsPOS();
+      renderKitchenDisplay();
+      updateNextOrderId();
+
+      // 启动云端首次同步，并开启 6 秒自动轮询实时数据
+      fetchOrdersFromCloud();
+      setInterval(fetchOrdersFromCloud, 6000);
     };
 
     // 从 Google 云端数据库拉取所有数据 (突破跨域 JSONP)
@@ -688,7 +760,7 @@
       renderDailyReport();
     }
 
-    function r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8() {
+    function resetToCurrentBusinessDate() {
       vibrate(15);
       targetDate = currentBusinessDate;
       const picker = document.getElementById('target-date-picker');
