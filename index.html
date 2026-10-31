@@ -696,11 +696,16 @@
               if (typeof parsedItems === 'string') {
                 try { parsedItems = JSON.parse(parsedItems); } catch(e) { parsedItems = []; }
               }
+              // 提取并清洗 staff 字段
+              let rawStaff = o.staff;
+              if (!rawStaff || rawStaff === 'undefined' || rawStaff === 'null' || rawStaff === '') {
+                rawStaff = '未知';
+              }
               return { 
                 ...o, 
                 id: String(o.id),
                 date: normalizeDate(o.date),
-                staff: o.staff && o.staff !== 'undefined' ? o.staff : '未知',
+                staff: rawStaff,
                 items: Array.isArray(parsedItems) ? parsedItems : [] 
               };
             });
@@ -770,7 +775,7 @@
             date: currentBusinessDate,
             time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
             table: tableVal, 
-            staff: currentStaff,
+            staff: currentStaff, // 确保封装进 order 对象
             items: itemsDetail, 
             rawTotal: rawTotal,
             discount: discountVal, 
@@ -783,6 +788,7 @@
           orders.push(newOrder);
           localStorage.setItem('ib_orders', JSON.stringify(orders));
           
+          // 确保双保险发送 staff
           sendJsonp({ action: 'saveOrder', order: newOrder, staff: currentStaff }, function(saveRes) {
             console.log("云端写入成功:", saveRes);
             setTimeout(fetchOrdersFromCloud, 300);
