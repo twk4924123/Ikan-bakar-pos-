@@ -247,7 +247,7 @@
         <div class="bg-amber-50 text-slate-900 p-4 rounded-xl shadow-md space-y-2 border border-amber-300">
           <div class="flex justify-between items-center">
             <span class="font-black text-sm flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left"></i> 历史账目查阅/修改日期:</span>
-            <button onclick="resetToCurrentBusinessDate()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
+            <button onclick="r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
           </div>
           <input type="date" id="target-date-picker" onchange="changeTargetDate(this.value)" class="w-full bg-white border-2 border-slate-900 rounded-lg p-2 text-sm font-black text-slate-900">
         </div>
@@ -573,7 +573,7 @@
         document.body.appendChild(script);
       }
 
-      // 从 Google 表格获取最新订单（带防冲撞锁保护）
+      // 从 Google 表格获取最新订单（带防冲撞锁保护与多设备单号实时联动）
       function fetchOrdersFromCloud() {
         sendJsonp({ action: 'getOrders' }, function(res) {
           if (res && res.status === 'success' && Array.isArray(res.data)) {
@@ -585,17 +585,14 @@
               return { ...o, items: Array.isArray(parsedItems) ? parsedItems : [] };
             });
             
-            // 🛡️ 终极防覆盖保护：只有当云端订单总数大于本地，或者云端有新出餐/付款状态变更时，才进行智能增量合并，绝不盲目整组替换！
             if (cloudOrders.length > 0) {
               let hasChanges = false;
               cloudOrders.forEach(co => {
                 const localIndex = orders.findIndex(lo => lo.id === co.id);
                 if (localIndex === -1) {
-                  // 云端有本地没有的新单，追加进来
                   orders.push(co);
                   hasChanges = true;
                 } else {
-                  // 如果云端的状态或桌号有更新（比如其他手机点了解锁或出餐），同步更新本地
                   if (orders[localIndex].status !== co.status || orders[localIndex].payStatus !== co.payStatus || orders[localIndex].table !== co.table) {
                     orders[localIndex].status = co.status;
                     orders[localIndex].payStatus = co.payStatus;
@@ -605,13 +602,16 @@
                 }
               });
 
-              if (hasChanges || cloudOrders.length > orders.length) {
+              // 即使本地订单数大于云端（刚在本地开了单），也要将云端其他手机开的新单合并进来，并强制刷新单号联动！
+              if (hasChanges || cloudOrders.length !== orders.length) {
                 localStorage.setItem('ib_orders', JSON.stringify(orders));
-                updateNextOrderId();
-                renderKitchenDisplay();
-                renderDailyReport();
-                renderMonthlyReport();
               }
+              
+              // 🌟 核心联动：无论何时只要成功拉取或同步云端，立刻强制刷新界面单号、厨房和报表，实现多设备秒级联动！
+              updateNextOrderId();
+              renderKitchenDisplay();
+              renderDailyReport();
+              renderMonthlyReport();
             }
           }
         });
@@ -713,7 +713,7 @@
         renderDailyReport();
       }
 
-      function resetToCurrentBusinessDate() {
+      function r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8() {
         vibrate(15);
         targetDate = currentBusinessDate;
         const picker = document.getElementById('target-date-picker');
