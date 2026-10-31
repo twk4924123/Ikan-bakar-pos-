@@ -252,7 +252,7 @@
         <div class="bg-amber-50 text-slate-900 p-4 rounded-xl shadow-md space-y-2 border border-amber-300">
           <div class="flex justify-between items-center">
             <span class="font-black text-sm flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left"></i> 历史账目查阅/修改日期:</span>
-            <button onclick="rahJ91ZuNL8Y2px8iYciYeHN8sfSh5eXH8()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
+            <button onclick="r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
           </div>
           <input type="date" id="target-date-picker" onchange="changeTargetDate(this.value)" class="w-full bg-white border-2 border-slate-900 rounded-lg p-2 text-sm font-black text-slate-900">
         </div>
@@ -700,7 +700,7 @@
                 ...o, 
                 id: String(o.id),
                 date: normalizeDate(o.date),
-                staff: o.staff && o.staff !== 'undefined' ? o.staff : 'WK',
+                staff: o.staff && o.staff !== 'undefined' ? o.staff : '未知',
                 items: Array.isArray(parsedItems) ? parsedItems : [] 
               };
             });
@@ -733,6 +733,13 @@
           const num = parseInt(String(o.orderNum || '').replace('#', '')) || 0;
           return num > max ? num : max;
         }, 0);
+
+        // 确保读取最新选择的开单员
+        const selectEl = document.getElementById('staff-select');
+        if (selectEl && selectEl.value) {
+          currentStaff = selectEl.value;
+          localStorage.setItem('ib_staff_operator', currentStaff);
+        }
         
         sendJsonp({ action: 'getNextOrderNum', date: currentBusinessDate }, function(res) {
           let orderNumStr = '#001';
@@ -776,7 +783,7 @@
           orders.push(newOrder);
           localStorage.setItem('ib_orders', JSON.stringify(orders));
           
-          sendJsonp({ action: 'saveOrder', order: newOrder }, function(saveRes) {
+          sendJsonp({ action: 'saveOrder', order: newOrder, staff: currentStaff }, function(saveRes) {
             console.log("云端写入成功:", saveRes);
             setTimeout(fetchOrdersFromCloud, 300);
           });
@@ -870,7 +877,7 @@
         renderDailyReport();
       }
 
-      function rahJ91ZuNL8Y2px8iYciYeHN8sfSh5eXH8() {
+      function r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8() {
         targetDate = currentBusinessDate;
         const picker = document.getElementById('target-date-picker');
         if(picker) picker.value = targetDate;
