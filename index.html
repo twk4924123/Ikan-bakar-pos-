@@ -582,18 +582,32 @@
               if (typeof parsedItems === 'string') {
                 try { parsedItems = JSON.parse(parsedItems); } catch(e) { parsedItems = []; }
               }
-              return { ...o, items: Array.isArray(parsedItems) ? parsedItems : [] };
+              return { 
+                ...o, 
+                id: Number(o.id) || o.id, // 确保 ID 类型一致
+                items: Array.isArray(parsedItems) ? parsedItems : [] 
+              };
             });
             
             if (cloudOrders.length > 0) {
               let hasChanges = false;
+              
               cloudOrders.forEach(co => {
-                const localIndex = orders.findIndex(lo => lo.id === co.id);
+                // 更稳健的匹配：优先匹配 id，其次匹配时间与单号组合
+                let localIndex = orders.findIndex(lo => String(lo.id) === String(co.id));
                 if (localIndex === -1) {
+                  localIndex = orders.findIndex(lo => lo.date === co.date && lo.orderNum === co.orderNum && lo.time === co.time);
+                }
+
+                if (localIndex === -1) {
+                  // 本地没有，直接追加
                   orders.push(co);
                   hasChanges = true;
                 } else {
-                  if (orders[localIndex].status !== co.status || orders[localIndex].payStatus !== co.payStatus || orders[localIndex].table !== co.table) {
+                  // 本地已存在，检查状态、桌号或付款状态是否有更新
+                  if (orders[localIndex].status !== co.status || 
+                      orders[localIndex].payStatus !== co.payStatus || 
+                      orders[localIndex].table !== co.table) {
                     orders[localIndex].status = co.status;
                     orders[localIndex].payStatus = co.payStatus;
                     orders[localIndex].table = co.table;
@@ -602,8 +616,8 @@
                 }
               });
 
-              // 即使本地订单数大于云端（刚在本地开了单），也要将云端其他手机开的新单合并进来，并强制刷新单号联动！
-              if (hasChanges || cloudOrders.length !== orders.length) {
+              // 如果有新订单或状态更新，写入本地缓存并刷新UI
+              if (hasChanges || cloudOrders.length > orders.length) {
                 localStorage.setItem('ib_orders', JSON.stringify(orders));
               }
               
