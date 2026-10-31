@@ -247,7 +247,7 @@
         <div class="bg-amber-50 text-slate-900 p-4 rounded-xl shadow-md space-y-2 border border-amber-300">
           <div class="flex justify-between items-center">
             <span class="font-black text-sm flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left"></i> 历史账目查阅/修改日期:</span>
-            <button onclick="r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
+            <button onclick="rahJ91ZuNL8Y2px8iYciYeHN8sfSh5eXH8()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
           </div>
           <input type="date" id="target-date-picker" onchange="changeTargetDate(this.value)" class="w-full bg-white border-2 border-slate-900 rounded-lg p-2 text-sm font-black text-slate-900">
         </div>
@@ -469,7 +469,18 @@
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       }
 
-      let currentBusinessDate = localStorage.getItem('ib_business_date') || getSystemTodayStr();
+      // 🌟 强制日期归一化解析（防止 Google Sheet 时区与格式污染）
+      function normalizeDate(dateVal) {
+        if (!dateVal) return getSystemTodayStr();
+        let str = String(dateVal).trim();
+        if (str.includes("T")) str = str.split("T")[0];
+        if (str.length >= 10 && str.charAt(4) === '-' && str.charAt(7) === '-') {
+          return str.substring(0, 10);
+        }
+        return getSystemTodayStr();
+      }
+
+      let currentBusinessDate = normalizeDate(localStorage.getItem('ib_business_date')) || getSystemTodayStr();
 
       const defaultProducts = [
         { id: 'pari', name: '魔鬼鱼 (Ikan Pari)', unit: 'g', pricePer100g: 9.60, costPer100g: 4.20 },
@@ -581,7 +592,8 @@
               }
               return { 
                 ...o, 
-                id: String(o.id), // 统一转为字符串方便准确比较
+                id: String(o.id),
+                date: normalizeDate(o.date), // 强行清理日期格式
                 items: Array.isArray(parsedItems) ? parsedItems : [] 
               };
             });
@@ -589,7 +601,7 @@
             // 直接以云端完整数据覆盖/合并本地
             const mergedMap = new Map();
             // 先放本地
-            orders.forEach(o => mergedMap.set(String(o.id), o));
+            orders.forEach(o => mergedMap.set(String(o.id), { ...o, date: normalizeDate(o.date) }));
             // 云端覆盖本地
             cloudOrders.forEach(co => mergedMap.set(String(co.id), co));
             
@@ -613,7 +625,7 @@
         setSyncStatus(true, "正在向云端申请自增单号...");
         
         // 双保险计算单号：优先取当前已收到的最大的单号序号
-        const todayOrders = orders.filter(o => o.date === currentBusinessDate);
+        const todayOrders = orders.filter(o => normalizeDate(o.date) === currentBusinessDate);
         const maxSeq = todayOrders.reduce((max, o) => {
           const num = parseInt(String(o.orderNum || '').replace('#', '')) || 0;
           return num > max ? num : max;
@@ -754,7 +766,7 @@
         renderDailyReport();
       }
 
-      function r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8() {
+      function rahJ91ZuNL8Y2px8iYciYeHN8sfSh5eXH8() {
         targetDate = currentBusinessDate;
         const picker = document.getElementById('target-date-picker');
         if(picker) picker.value = targetDate;
@@ -1023,7 +1035,7 @@
       function clearCurrentCart() { currentCart = {}; renderCart(); }
 
       function updateNextOrderId() {
-        const todayOrders = orders.filter(o => o.date === currentBusinessDate);
+        const todayOrders = orders.filter(o => normalizeDate(o.date) === currentBusinessDate);
         const maxNum = todayOrders.reduce((max, o) => {
           const num = parseInt((o.orderNum || '').replace('#', '')) || 0;
           return num > max ? num : max;
@@ -1033,7 +1045,7 @@
       }
 
       function renderKitchenDisplay() {
-        const pendingOrders = orders.filter(o => o.date === currentBusinessDate && o.status === 'pending');
+        const pendingOrders = orders.filter(o => normalizeDate(o.date) === currentBusinessDate && o.status === 'pending');
         const badge = document.getElementById('kitchen-badge');
         if (badge) {
           if (pendingOrders.length > 0) { badge.innerText = pendingOrders.length; badge.classList.remove('hidden'); }
