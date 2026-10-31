@@ -537,15 +537,35 @@
         const cbName = 'google_pos_cb_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
         
         let isFinished = false;
+        
+        // 双重保障：如果 JSONP 在某些设备/浏览器上超时，自动回退使用 fetch
         const timeoutId = setTimeout(function() {
           if (!isFinished) {
             isFinished = true;
             delete window[cbName];
             const script = document.getElementById(cbName);
             if (script) script.remove();
-            setSyncStatus(false, "已就绪(本地)");
+            
+            // 尝试使用 fetch 作为回退机制
+            const queryArr = [];
+            for (let k in params) {
+              let val = params[k];
+              if (typeof val === 'object') val = JSON.stringify(val);
+              queryArr.push(encodeURIComponent(k) + '=' + encodeURIComponent(val));
+            }
+            queryArr.push('_t=' + Date.now());
+            
+            fetch(GOOGLE_SCRIPT_URL + '?' + queryArr.join('&'))
+              .then(r => r.json())
+              .then(data => {
+                setSyncStatus(false, "已就绪(云端)");
+                if (callback) callback(data);
+              })
+              .catch(err => {
+                setSyncStatus(false, "已就绪(本地)");
+              });
           }
-        }, 6000);
+        }, 3000);
 
         window[cbName] = function(data) {
           if (isFinished) return;
@@ -576,7 +596,16 @@
           clearTimeout(timeoutId);
           delete window[cbName];
           script.remove();
-          setSyncStatus(false, "已就绪(本地)");
+          
+          //  onerror 时同样尝试 fetch
+          const fetchQuery = queryArr.filter(q => !q.startsWith('callback=')).join('&');
+          fetch(GOOGLE_SCRIPT_URL + '?' + fetchQuery)
+            .then(r => r.json())
+            .then(data => {
+              setSyncStatus(false, "已就绪(云端)");
+              if (callback) callback(data);
+            })
+            .catch(() => setSyncStatus(false, "已就绪(本地)"));
         };
         document.body.appendChild(script);
       }
