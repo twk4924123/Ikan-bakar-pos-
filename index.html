@@ -252,7 +252,7 @@
         <div class="bg-amber-50 text-slate-900 p-4 rounded-xl shadow-md space-y-2 border border-amber-300">
           <div class="flex justify-between items-center">
             <span class="font-black text-sm flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left"></i> 历史账目查阅/修改日期:</span>
-            <button onclick="r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
+            <button onclick="rahJ91ZuNL8Y2px8iYciYeHN8sfSh5eXH8()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
           </div>
           <input type="date" id="target-date-picker" onchange="changeTargetDate(this.value)" class="w-full bg-white border-2 border-slate-900 rounded-lg p-2 text-sm font-black text-slate-900">
         </div>
@@ -466,7 +466,7 @@
     </main>
 
     <script>
-      // 🌟 您最新的 Google Apps Script API 网址 🌟
+      // 🌟 Google Apps Script API 网址 🌟
       const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz2brt4vYOFaUtkQXEr9veqzLf2Yc0YMZKKr3CvCWTukr6hPIiiNl106WBTG0eWmWU1/exec";
 
       // 默认员工名单与记住开单员工
@@ -552,7 +552,7 @@
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       }
 
-      // 🌟 强制日期归一化解析
+      // 强制日期归一化解析
       function normalizeDate(dateVal) {
         if (!dateVal) return getSystemTodayStr();
         let str = String(dateVal).trim();
@@ -614,7 +614,7 @@
         }
       }
 
-      // 🌟 极速兼容传输网络层
+      // 极速兼容传输网络层
       function sendJsonp(params, callback) {
         if (!GOOGLE_SCRIPT_URL) return;
         setSyncStatus(true, "与云端通信中...");
@@ -687,7 +687,7 @@
         });
       }
 
-      // 🌟 强效云端数据拉取与多设备同步
+      // 强效云端数据拉取与多设备同步
       function fetchOrdersFromCloud() {
         sendJsonp({ action: 'getOrders' }, function(res) {
           if (res && res.status === 'success' && Array.isArray(res.data)) {
@@ -696,7 +696,6 @@
               if (typeof parsedItems === 'string') {
                 try { parsedItems = JSON.parse(parsedItems); } catch(e) { parsedItems = []; }
               }
-              // 提取并清洗 staff 字段
               let rawStaff = o.staff;
               if (!rawStaff || rawStaff === 'undefined' || rawStaff === 'null' || rawStaff === '') {
                 rawStaff = '未知';
@@ -725,7 +724,7 @@
         });
       }
 
-      // 🌟 开单：向云端申请实时最新单号
+      // 开单：向云端申请实时最新单号
       function submitOrder() {
         const keys = Object.keys(currentCart);
         if (keys.length === 0) { vibrate([30, 30]); alert('清单为空！'); return; }
@@ -739,7 +738,6 @@
           return num > max ? num : max;
         }, 0);
 
-        // 确保读取最新选择的开单员
         const selectEl = document.getElementById('staff-select');
         if (selectEl && selectEl.value) {
           currentStaff = selectEl.value;
@@ -775,7 +773,7 @@
             date: currentBusinessDate,
             time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
             table: tableVal, 
-            staff: currentStaff, // 确保封装进 order 对象
+            staff: currentStaff,
             items: itemsDetail, 
             rawTotal: rawTotal,
             discount: discountVal, 
@@ -788,7 +786,6 @@
           orders.push(newOrder);
           localStorage.setItem('ib_orders', JSON.stringify(orders));
           
-          // 确保双保险发送 staff
           sendJsonp({ action: 'saveOrder', order: newOrder, staff: currentStaff }, function(saveRes) {
             console.log("云端写入成功:", saveRes);
             setTimeout(fetchOrdersFromCloud, 300);
@@ -883,7 +880,7 @@
         renderDailyReport();
       }
 
-      function r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8() {
+      function rahJ91ZuNL8Y2px8iYciYeHN8sfSh5eXH8() {
         targetDate = currentBusinessDate;
         const picker = document.getElementById('target-date-picker');
         if(picker) picker.value = targetDate;
@@ -1197,11 +1194,11 @@
           let payBadgeText = isUnpaid ? '❌ 未付款' : (o.payStatus === 'cash' ? '💵 已付现金' : '📱 已付 QR');
           let actionButtonsHtml = isUnpaid ? `
             <div class="grid grid-cols-2 gap-2 mt-2">
-              <button onclick="completeOrderWithPayment(${o.id}, 'cash')" class="bg-emerald-600 text-white font-black py-2.5 rounded-lg text-xs shadow">💵 收 RM ${o.finalAmount} 现金出餐</button>
-              <button onclick="completeOrderWithPayment(${o.id}, 'qr')" class="bg-blue-600 text-white font-black py-2.5 rounded-lg text-xs shadow">📱 收 RM ${o.finalAmount} QR出餐</button>
+              <button onclick="completeOrderWithPayment('${o.id}', 'cash')" class="bg-emerald-600 text-white font-black py-2.5 rounded-lg text-xs shadow">💵 收 RM ${o.finalAmount} 现金出餐</button>
+              <button onclick="completeOrderWithPayment('${o.id}', 'qr')" class="bg-blue-600 text-white font-black py-2.5 rounded-lg text-xs shadow">📱 收 RM ${o.finalAmount} QR出餐</button>
             </div>
           ` : `
-            <button onclick="completeOrderWithPayment(${o.id}, '${o.payStatus}')" class="w-full bg-emerald-600 text-white font-black py-3 rounded-lg text-sm shadow mt-2">✅ 确认出餐 Complete</button>
+            <button onclick="completeOrderWithPayment('${o.id}', '${o.payStatus}')" class="w-full bg-emerald-600 text-white font-black py-3 rounded-lg text-sm shadow mt-2">✅ 确认出餐 Complete</button>
           `;
 
           card.innerHTML = `
@@ -1225,12 +1222,13 @@
       }
 
       function completeOrderWithPayment(orderId, payMethod) {
-        const order = orders.find(o => o.id === orderId);
+        const targetId = String(orderId);
+        const order = orders.find(o => String(o.id) === targetId);
         if (order) {
           order.status = 'done';
           order.payStatus = payMethod;
           localStorage.setItem('ib_orders', JSON.stringify(orders));
-          updateOrderToCloud(orderId, { status: 'done', payStatus: payMethod });
+          updateOrderToCloud(targetId, { status: 'done', payStatus: payMethod });
           renderKitchenDisplay();
           renderDailyReport();
         }
@@ -1238,11 +1236,12 @@
 
       function cancelOrder(orderId) {
         if (confirm('确认取消此订单？')) {
-          const order = orders.find(o => o.id === orderId);
+          const targetId = String(orderId);
+          const order = orders.find(o => String(o.id) === targetId);
           if (order) { 
             order.status = 'cancelled'; 
             localStorage.setItem('ib_orders', JSON.stringify(orders)); 
-            updateOrderToCloud(orderId, { status: 'cancelled' });
+            updateOrderToCloud(targetId, { status: 'cancelled' });
             renderKitchenDisplay(); 
             renderDailyReport(); 
           }
