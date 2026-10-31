@@ -649,9 +649,9 @@
         renderKitchenDisplay();
         updateNextOrderId();
 
-        // 首次连接并开启每 8 秒轮询
+        // 首次连接并开启每 2 秒极速轮询，实现多设备秒级联动
         fetchOrdersFromCloud();
-        setInterval(fetchOrdersFromCloud, 8000);
+        setInterval(fetchOrdersFromCloud, 2000);
       };
 
       function manualCloseTodayAndStartNew() {
