@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>烧鱼 POS & 财务管理系统 (Ikan Bakar POS)</title>
+  <title>烧鱼 POS & 财务管理系统 (Google 云端实时多设备版)</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Font Awesome Icons -->
@@ -20,14 +20,16 @@
   <header class="bg-slate-900 text-white sticky top-0 z-50 shadow-md">
     <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center space-x-2">
-        <i class="fa-solid fa-fire-burner text-amber-500 text-2xl"></i>
+        <i class="fa-solid fa-cloud text-amber-500 text-2xl"></i>
         <div>
           <h1 class="font-black text-lg leading-tight tracking-wide">烧鱼 POS System</h1>
-          <span class="text-[10px] text-amber-400 block font-medium">Ikan Bakar Management (含手动日结与部位选择)</span>
+          <span class="text-[10px] text-amber-400 block font-medium">Google 云端多设备实时同步版</span>
         </div>
       </div>
-      <div class="text-right">
-        <span id="today-date-badge" class="bg-slate-800 px-3 py-1 rounded-full border border-slate-700 text-amber-400 font-bold text-xs"></span>
+      <div class="text-right flex items-center gap-1.5">
+        <div id="sync-indicator" class="text-[10px] px-2 py-0.5 rounded font-bold bg-amber-500 text-slate-900 flex items-center gap-1">
+          <i id="sync-icon" class="fa-solid fa-rotate animate-spin"></i> <span id="sync-text">同步中...</span>
+        </div>
       </div>
     </div>
     
@@ -144,10 +146,10 @@
           <div>
             <label class="block text-xs font-bold text-slate-600 mb-1">加料 / Add-ons:</label>
             <div class="grid grid-cols-2 gap-1.5 text-xs font-bold">
-              <label class="bg-slate-50 p-2 rounded-lg border border-slate-200 flex items-center gap-2"><input type="checkbox" value="+Sambal" class="addon-cb w-4 h-4 text-amber-600"> 加 Sambal</label>
-              <label class="bg-slate-50 p-2 rounded-lg border border-slate-200 flex items-center gap-2"><input type="checkbox" value="+Sauce" class="addon-cb w-4 h-4 text-amber-600"> 加 Sauce 汁</label>
-              <label class="bg-slate-50 p-2 rounded-lg border border-slate-200 flex items-center gap-2"><input type="checkbox" value="+Bawang" class="addon-cb w-4 h-4 text-amber-600"> 加 Bawang 葱</label>
-              <label class="bg-slate-50 p-2 rounded-lg border border-slate-200 flex items-center gap-2"><input type="checkbox" value="+Limau" class="addon-cb w-4 h-4 text-amber-600"> 加 Limau 酸柑</label>
+              <label class="bg-slate-50 p-2 rounded-lg border border-slate-200 flex items-center gap-2"><input type="checkbox" value="+Sambal" onclick="vibrate(15)" class="addon-cb w-4 h-4 text-amber-600"> 加 Sambal</label>
+              <label class="bg-slate-50 p-2 rounded-lg border border-slate-200 flex items-center gap-2"><input type="checkbox" value="+Sauce" onclick="vibrate(15)" class="addon-cb w-4 h-4 text-amber-600"> 加 Sauce 汁</label>
+              <label class="bg-slate-50 p-2 rounded-lg border border-slate-200 flex items-center gap-2"><input type="checkbox" value="+Bawang" onclick="vibrate(15)" class="addon-cb w-4 h-4 text-amber-600"> 加 Bawang 葱</label>
+              <label class="bg-slate-50 p-2 rounded-lg border border-slate-200 flex items-center gap-2"><input type="checkbox" value="+Limau" onclick="vibrate(15)" class="addon-cb w-4 h-4 text-amber-600"> 加 Limau 酸柑</label>
             </div>
           </div>
           <div>
@@ -245,7 +247,7 @@
       <div class="bg-amber-50 text-slate-900 p-4 rounded-xl shadow-md space-y-2 border border-amber-300">
         <div class="flex justify-between items-center">
           <span class="font-black text-sm flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left"></i> 历史账目查阅/修改日期:</span>
-          <button onclick="r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
+          <button onclick="resetToCurrentBusinessDate()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
         </div>
         <input type="date" id="target-date-picker" onchange="changeTargetDate(this.value)" class="w-full bg-white border-2 border-slate-900 rounded-lg p-2 text-sm font-black text-slate-900">
       </div>
@@ -445,6 +447,16 @@
   </main>
 
   <script>
+    // 🌟 您部署获取的 4 步骤 Google Apps Script API 网址已直接更新到此处 🌟
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwJ0D1U5frr7RAlwaKoBIJMLNNYKUaUVxF1IAEWaym3lyW441EeMYOxbYdnBoviLlVp/exec";
+
+    // 触觉震动辅助函数
+    function vibrate(pattern) {
+      if (typeof window !== 'undefined' && 'navigator' in window && 'vibrate' in navigator) {
+        navigator.vibrate(pattern);
+      }
+    }
+
     function customRound(val) {
       const integerPart = Math.floor(val);
       const decimalPart = val - integerPart;
@@ -488,24 +500,111 @@
     let cartPayStatus = 'unpaid'; 
     let editingProductId = null;
 
+    // 更新云端同步UI状态
+    function setSyncStatus(isSyncing, text, isError = false) {
+      const indicator = document.getElementById('sync-indicator');
+      const icon = document.getElementById('sync-icon');
+      const textEl = document.getElementById('sync-text');
+      if (!indicator) return;
+
+      if (isError) {
+        indicator.className = "text-[10px] px-2 py-0.5 rounded font-bold bg-rose-500 text-white flex items-center gap-1";
+        icon.className = "fa-solid fa-triangle-exclamation";
+        textEl.innerText = text || "同步失败";
+      } else if (isSyncing) {
+        indicator.className = "text-[10px] px-2 py-0.5 rounded font-bold bg-amber-500 text-slate-900 flex items-center gap-1";
+        icon.className = "fa-solid fa-rotate animate-spin";
+        textEl.innerText = text || "同步中...";
+      } else {
+        indicator.className = "text-[10px] px-2 py-0.5 rounded font-bold bg-emerald-500 text-white flex items-center gap-1";
+        icon.className = "fa-solid fa-cloud-check";
+        textEl.innerText = text || "已完成同步";
+      }
+    }
+
+    // 从 Google 云端数据库拉取所有数据
+    async function fetchOrdersFromCloud() {
+      if (!GOOGLE_SCRIPT_URL) return;
+      try {
+        setSyncStatus(true, "拉取云端数据...");
+        const res = await fetch(`${GOOGLE_SCRIPT_URL}?action=getOrders`);
+        const cloudOrders = await res.json();
+        if (Array.isArray(cloudOrders)) {
+          orders = cloudOrders;
+          localStorage.setItem('ib_orders', JSON.stringify(orders));
+          updateNextOrderId();
+          renderKitchenDisplay();
+          renderDailyReport();
+          renderMonthlyReport();
+          setSyncStatus(false, "已就绪");
+        }
+      } catch (err) {
+        console.error("无法拉取云端数据:", err);
+        setSyncStatus(false, "离线模式", true);
+      }
+    }
+
+    // 提交新单到云端
+    async function saveOrderToCloud(newOrder) {
+      if (!GOOGLE_SCRIPT_URL) return;
+      try {
+        setSyncStatus(true, "保存单号中...");
+        await fetch(GOOGLE_SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'saveOrder', order: newOrder })
+        });
+        setTimeout(fetchOrdersFromCloud, 1000);
+      } catch (err) {
+        console.error("提交单据失败:", err);
+        setSyncStatus(false, "云端保存失败", true);
+      }
+    }
+
+    // 更新订单状态到云端
+    async function updateOrderToCloud(orderId, updateFields) {
+      if (!GOOGLE_SCRIPT_URL) return;
+      try {
+        setSyncStatus(true, "更新状态中...");
+        await fetch(GOOGLE_SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'updateOrderStatus', id: orderId, ...updateFields })
+        });
+        setTimeout(fetchOrdersFromCloud, 1000);
+      } catch (err) {
+        console.error("状态同步失败:", err);
+        setSyncStatus(false, "状态保存失败", true);
+      }
+    }
+
     window.onload = function() {
-      document.getElementById('today-date-badge').innerText = `营业日: ${currentBusinessDate}`;
+      const todayBadge = document.getElementById('today-date-badge');
+      if (todayBadge) todayBadge.innerText = `营业日: ${currentBusinessDate}`;
+
       const busLabel = document.getElementById('current-bus-date-label');
-      if(busLabel) busLabel.innerText = currentBusinessDate;
+      if (busLabel) busLabel.innerText = currentBusinessDate;
       const actBusDisplay = document.getElementById('active-bus-date-display');
-      if(actBusDisplay) actBusDisplay.innerText = currentBusinessDate;
+      if (actBusDisplay) actBusDisplay.innerText = currentBusinessDate;
 
       const picker = document.getElementById('target-date-picker');
-      if(picker) picker.value = targetDate;
+      if (picker) picker.value = targetDate;
       const mPicker = document.getElementById('monthly-picker');
-      if(mPicker) mPicker.value = currentBusinessDate.slice(0, 7);
+      if (mPicker) mPicker.value = currentBusinessDate.slice(0, 7);
 
       renderProductsPOS();
       renderKitchenDisplay();
       updateNextOrderId();
+
+      // 启动云端首次同步，并开启 8 秒自动轮询实时数据
+      fetchOrdersFromCloud();
+      setInterval(fetchOrdersFromCloud, 8000);
     };
 
     function manualCloseTodayAndStartNew() {
+      vibrate(30);
       if (confirm(`确认要结束当前营业日 [${currentBusinessDate}] 的账目吗？\n点确认后，之后的点单将计入新的一天。`)) {
         const parts = currentBusinessDate.split('-');
         let d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
@@ -524,6 +623,7 @@
         const picker = document.getElementById('target-date-picker');
         if(picker) picker.value = targetDate;
 
+        vibrate([80, 50, 80]);
         alert(`✅ 已成功开启新营业日: ${currentBusinessDate}`);
         updateNextOrderId();
         renderProductsPOS();
@@ -532,6 +632,7 @@
     }
 
     function switchTab(tabName) {
+      vibrate(15);
       ['pos', 'kitchen', 'daily', 'monthly', 'settings'].forEach(t => {
         const el = document.getElementById(`tab-${t}`);
         if(el) el.classList.add('hidden');
@@ -555,11 +656,13 @@
 
     function changeTargetDate(val) {
       if (!val) return;
+      vibrate(15);
       targetDate = val;
       renderDailyReport();
     }
 
-    function r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8() {
+    function resetToCurrentBusinessDate() {
+      vibrate(15);
       targetDate = currentBusinessDate;
       const picker = document.getElementById('target-date-picker');
       if(picker) picker.value = targetDate;
@@ -567,17 +670,20 @@
     }
 
     function startNewCycle() {
+      vibrate(30);
       if (confirm('确认要对当前周期进行结算并开启新周期吗？')) {
         const archiveId = `Cycle_${Date.now()}`;
         const activeMonth = currentBusinessDate.slice(0, 7);
         cycleArchives.push({ id: archiveId, date: currentBusinessDate, month: activeMonth, note: `手动结算周期 (${currentBusinessDate})` });
         localStorage.setItem('ib_cycle_archives', JSON.stringify(cycleArchives));
+        vibrate([80, 50, 80]);
         alert('🎉 新周期已成功开启！');
         renderMonthlyReport();
       }
     }
 
     function exportDailyCSV() {
+      vibrate(30);
       const validOrders = orders.filter(o => o.date === targetDate && o.status !== 'cancelled');
       if (validOrders.length === 0) {
         alert(`选定日期 (${targetDate}) 暂无有效订单可导出！`);
@@ -605,6 +711,7 @@
     }
 
     function exportMonthlyCSV() {
+      vibrate(30);
       const selectedMonth = document.getElementById('monthly-picker').value;
       if (!selectedMonth) return;
       const monthOrders = orders.filter(o => o.date.startsWith(selectedMonth) && o.status !== 'cancelled');
@@ -669,6 +776,7 @@
     }
 
     function openQuickEditModal(id) {
+      vibrate(30);
       editingProductId = id;
       const p = products.find(item => item.id === id);
       document.getElementById('quick-edit-title').innerText = `修改 ${p.name}`;
@@ -687,9 +795,10 @@
       document.getElementById('quick-edit-modal').classList.remove('hidden');
     }
 
-    function closeQuickEditModal() { document.getElementById('quick-edit-modal').classList.add('hidden'); }
+    function closeQuickEditModal() { vibrate(15); document.getElementById('quick-edit-modal').classList.add('hidden'); }
 
     function saveQuickEdit() {
+      vibrate(50);
       const p = products.find(item => item.id === editingProductId);
       if (p) {
         const priceVal = parseFloat(document.getElementById('qe-price').value) || 0;
@@ -713,7 +822,8 @@
     function openCustomModal(productId) {
       const input = document.getElementById(`input-${productId}`);
       const val = parseFloat(input.value);
-      if (!val || val <= 0) { alert('请先输入有效的金额(RM)或包数！'); return; }
+      if (!val || val <= 0) { vibrate([30, 30]); alert('请先输入有效的金额(RM)或包数！'); return; }
+      vibrate(50);
       activeProductId = productId;
       activeAmount = val;
       selectedPart = '身体 / Body'; 
@@ -745,11 +855,11 @@
       document.getElementById('custom-modal').classList.remove('hidden');
     }
 
-    function closeCustomModal() { document.getElementById('custom-modal').classList.add('hidden'); }
-    function selectPart(val) { selectedPart = val; updatePartButtons(); }
-    function selectSpicy(val) { selectedSpicy = val; updateSpicyButtons(); }
-    function selectFlavor(val) { selectedFlavor = val; updateFlavorButtons(); }
-    function selectCooking(val) { selectedCooking = val; updateCookButtons(); }
+    function closeCustomModal() { vibrate(15); document.getElementById('custom-modal').classList.add('hidden'); }
+    function selectPart(val) { vibrate(20); selectedPart = val; updatePartButtons(); }
+    function selectSpicy(val) { vibrate(20); selectedSpicy = val; updateSpicyButtons(); }
+    function selectFlavor(val) { vibrate(20); selectedFlavor = val; updateFlavorButtons(); }
+    function selectCooking(val) { vibrate(20); selectedCooking = val; updateCookButtons(); }
 
     function updatePartButtons() {
       document.querySelectorAll('.part-btn').forEach(btn => {
@@ -773,6 +883,7 @@
     }
 
     function setCartPayStatus(status) {
+      vibrate(20);
       cartPayStatus = status;
       ['unpaid', 'cash', 'qr'].forEach(s => {
         const btn = document.getElementById(`pay-btn-${s}`);
@@ -789,6 +900,7 @@
     }
 
     function confirmAddToCart() {
+      vibrate(50);
       const product = products.find(p => p.id === activeProductId);
       let rawAmount = 0, rawCost = 0, displayQtyInfo = '';
 
@@ -869,8 +981,9 @@
       document.getElementById('cart-rounded-total').innerText = formatRM(finalPayAmount);
     }
 
-    function removeFromCart(key) { delete currentCart[key]; renderCart(); }
+    function removeFromCart(key) { vibrate(20); delete currentCart[key]; renderCart(); }
     function clearCurrentCart() { 
+      vibrate(20);
       currentCart = {}; 
       const discountInput = document.getElementById('cart-discount-input');
       if(discountInput) discountInput.value = '0';
@@ -879,7 +992,8 @@
 
     function submitOrder() {
       const keys = Object.keys(currentCart);
-      if (keys.length === 0) { alert('清单为空！'); return; }
+      if (keys.length === 0) { vibrate([30, 30]); alert('清单为空！'); return; }
+      vibrate([80, 50, 80]); // 开单双重强震回馈
       const tableVal = document.getElementById('table-input').value.trim() || '未填桌号';
       let rawTotal = 0, totalCost = 0;
       const itemsDetail = keys.map(k => {
@@ -906,6 +1020,10 @@
 
       orders.push(newOrder);
       localStorage.setItem('ib_orders', JSON.stringify(orders));
+      
+      // 同步提交到云端 Google 表格
+      saveOrderToCloud(newOrder);
+
       alert(`✅ 开单成功！桌号: ${tableVal} (归属营业日: ${currentBusinessDate}, 实收: RM ${finalAmount.toFixed(2)})`);
       clearCurrentCart();
       setCartPayStatus('unpaid');
@@ -1015,29 +1133,40 @@
       if (order) {
         order.table = newTableVal.trim() || '未填桌号';
         localStorage.setItem('ib_orders', JSON.stringify(orders));
+        updateOrderToCloud(orderId, { table: order.table });
         renderDailyReport();
       }
     }
 
     function completeOrderWithPayment(orderId, payMethod) {
+      vibrate([60, 40, 60]);
       const order = orders.find(o => o.id === orderId);
       if (order) {
         order.status = 'done';
         order.payStatus = payMethod;
         localStorage.setItem('ib_orders', JSON.stringify(orders));
+        updateOrderToCloud(orderId, { status: 'done', payStatus: payMethod });
         renderKitchenDisplay();
         renderDailyReport();
       }
     }
 
     function cancelOrder(orderId) {
+      vibrate(30);
       if (confirm('确认取消此订单？')) {
         const order = orders.find(o => o.id === orderId);
-        if (order) { order.status = 'cancelled'; localStorage.setItem('ib_orders', JSON.stringify(orders)); renderKitchenDisplay(); renderDailyReport(); }
+        if (order) { 
+          order.status = 'cancelled'; 
+          localStorage.setItem('ib_orders', JSON.stringify(orders)); 
+          updateOrderToCloud(orderId, { status: 'cancelled' });
+          renderKitchenDisplay(); 
+          renderDailyReport(); 
+        }
       }
     }
 
     function toggleUnitInputs() {
+      vibrate(15);
       const unit = document.getElementById('new-p-unit').value;
       if (unit === 'g') {
         document.getElementById('lbl-new-price').innerText = '卖价 RM (per 100g)';
@@ -1049,6 +1178,7 @@
     }
 
     function addNewProduct() {
+      vibrate(50);
       const name = document.getElementById('new-p-name').value.trim();
       const unit = document.getElementById('new-p-unit').value;
       const price = parseFloat(document.getElementById('new-p-price').value);
@@ -1066,6 +1196,7 @@
     }
 
     function deleteProduct(id) {
+      vibrate(30);
       if (confirm('确认删除？')) {
         products = products.filter(p => p.id !== id);
         localStorage.setItem('ib_products', JSON.stringify(products));
@@ -1074,6 +1205,7 @@
     }
 
     function addMiscExpense() {
+      vibrate(50);
       const cat = document.getElementById('misc-category').value;
       const remark = document.getElementById('misc-remark').value.trim() || cat;
       const amount = parseFloat(document.getElementById('misc-amount').value);
@@ -1085,6 +1217,7 @@
     }
 
     function deleteMiscExpense(id) {
+      vibrate(20);
       miscExpenses = miscExpenses.filter(m => m.id !== id);
       localStorage.setItem('ib_misc_expenses', JSON.stringify(miscExpenses));
       renderDailyReport();
@@ -1209,6 +1342,7 @@
     }
 
     function toggleRestDay(checked) {
+      vibrate(20);
       if (checked) restDays[targetDate] = true;
       else delete restDays[targetDate];
       localStorage.setItem('ib_rest_days', JSON.stringify(restDays));
@@ -1304,6 +1438,7 @@
     }
 
     function calculateAndApplyCost() {
+      vibrate(50);
       const productId = document.getElementById('calc-product-select').value;
       const totalAmount = parseFloat(document.getElementById('calc-total-amount').value);
       const cleanWeightKg = parseFloat(document.getElementById('calc-clean-weight').value);
@@ -1320,6 +1455,7 @@
     }
 
     function saveProductSettings() {
+      vibrate(50);
       products.forEach(p => {
         const priceInput = document.getElementById(`set-price-${p.id}`);
         const costInput = document.getElementById(`set-cost-${p.id}`);
@@ -1337,6 +1473,7 @@
     }
 
     function saveExpenseSettings() {
+      vibrate(50);
       expenses = {
         monthlyRent: parseFloat(document.getElementById('setting-rent-monthly').value) === 0 ? 0 : (parseFloat(document.getElementById('setting-rent-monthly').value) || 1500),
         dailyWorker: parseFloat(document.getElementById('setting-worker-daily').value) || 100
@@ -1346,6 +1483,7 @@
     }
 
     function exportData() {
+      vibrate(50);
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
         products: products, orders: orders, expenses: expenses, restDays: restDays, miscExpenses: miscExpenses, cycleArchives: cycleArchives, dailyLabor: dailyLabor, businessDate: currentBusinessDate
       }));
@@ -1356,6 +1494,7 @@
     }
 
     function triggerImport() {
+      vibrate(20);
       document.getElementById('import-file-input').click();
     }
 
@@ -1367,6 +1506,7 @@
         try {
           const content = JSON.parse(e.target.result);
           if (content.products && content.orders) {
+            vibrate(30);
             if (confirm('⚠️ 导入备份将覆盖当前的全部数据，是否继续？')) {
               localStorage.setItem('ib_products', JSON.stringify(content.products));
               localStorage.setItem('ib_orders', JSON.stringify(content.orders));
@@ -1377,6 +1517,7 @@
               if (content.dailyLabor) localStorage.setItem('ib_daily_labor', JSON.stringify(content.dailyLabor));
               if (content.businessDate) localStorage.setItem('ib_business_date', content.businessDate);
 
+              vibrate([80, 50, 80]);
               alert('✅ 备份导入成功！页面将自动刷新。');
               location.reload();
             }
@@ -1388,11 +1529,11 @@
         }
       };
       reader.readAsText(file);
-      // 清空input防止连续导入同一个文件不触发onchange
       event.target.value = '';
     }
 
     function clearAllData() {
+      vibrate(50);
       if (confirm('警告：确认清空所有数据？')) { localStorage.clear(); location.reload(); }
     }
   </script>
