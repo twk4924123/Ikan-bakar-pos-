@@ -247,7 +247,7 @@
         <div class="bg-amber-50 text-slate-900 p-4 rounded-xl shadow-md space-y-2 border border-amber-300">
           <div class="flex justify-between items-center">
             <span class="font-black text-sm flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left"></i> 历史账目查阅/修改日期:</span>
-            <button onclick="rahJ91ZuNL8Y2px8iYciYeHN8sfSh5eXH8()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
+            <button onclick="r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
           </div>
           <input type="date" id="target-date-picker" onchange="changeTargetDate(this.value)" class="w-full bg-white border-2 border-slate-900 rounded-lg p-2 text-sm font-black text-slate-900">
         </div>
@@ -531,52 +531,10 @@
         }
       }
 
+      // 🌟 极速兼容传输网络层 (针对小米浏览器/Safari等全平台拦截强效穿透)
       function sendJsonp(params, callback) {
         if (!GOOGLE_SCRIPT_URL) return;
         setSyncStatus(true, "与云端通信中...");
-        const cbName = 'google_pos_cb_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
-        
-        let isFinished = false;
-        
-        // 双重保障：如果 JSONP 在某些设备/浏览器上超时，自动回退使用 fetch
-        const timeoutId = setTimeout(function() {
-          if (!isFinished) {
-            isFinished = true;
-            delete window[cbName];
-            const script = document.getElementById(cbName);
-            if (script) script.remove();
-            
-            // 尝试使用 fetch 作为回退机制
-            const queryArr = [];
-            for (let k in params) {
-              let val = params[k];
-              if (typeof val === 'object') val = JSON.stringify(val);
-              queryArr.push(encodeURIComponent(k) + '=' + encodeURIComponent(val));
-            }
-            queryArr.push('_t=' + Date.now());
-            
-            fetch(GOOGLE_SCRIPT_URL + '?' + queryArr.join('&'))
-              .then(r => r.json())
-              .then(data => {
-                setSyncStatus(false, "已就绪(云端)");
-                if (callback) callback(data);
-              })
-              .catch(err => {
-                setSyncStatus(false, "已就绪(本地)");
-              });
-          }
-        }, 3000);
-
-        window[cbName] = function(data) {
-          if (isFinished) return;
-          isFinished = true;
-          clearTimeout(timeoutId);
-          delete window[cbName];
-          const script = document.getElementById(cbName);
-          if (script) script.remove();
-          setSyncStatus(false, "已就绪(云端)");
-          if (callback) callback(data);
-        };
 
         const queryArr = [];
         for (let k in params) {
@@ -584,30 +542,70 @@
           if (typeof val === 'object') val = JSON.stringify(val);
           queryArr.push(encodeURIComponent(k) + '=' + encodeURIComponent(val));
         }
-        queryArr.push('callback=' + cbName);
-        queryArr.push('_t=' + Date.now() + '_' + Math.random());
+        
+        // 强行穿透浏览器/手机自带拦截的随机时间戳
+        const nocacheStr = '_nc=' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+        queryArr.push(nocacheStr);
 
-        const script = document.createElement('script');
-        script.id = cbName;
-        script.src = GOOGLE_SCRIPT_URL + '?' + queryArr.join('&');
-        script.onerror = function() {
-          if (isFinished) return;
-          isFinished = true;
-          clearTimeout(timeoutId);
-          delete window[cbName];
-          script.remove();
+        let isCompleted = false;
+
+        // 优先方案 1：直接通过 Fetch 接口极速请求（克服小米浏览器对 Script 标签的广告拦截）
+        fetch(GOOGLE_SCRIPT_URL + '?' + queryArr.join('&'), {
+          method: 'GET',
+          cache: 'no-store',
+          headers: { 'Accept': 'application/json, text/plain, */*' }
+        })
+        .then(res => res.text())
+        .then(text => {
+          if (isCompleted) return;
+          isCompleted = true;
+          setSyncStatus(false, "已就绪(云端)");
           
-          //  onerror 时同样尝试 fetch
-          const fetchQuery = queryArr.filter(q => !q.startsWith('callback=')).join('&');
-          fetch(GOOGLE_SCRIPT_URL + '?' + fetchQuery)
-            .then(r => r.json())
-            .then(data => {
-              setSyncStatus(false, "已就绪(云端)");
-              if (callback) callback(data);
-            })
-            .catch(() => setSyncStatus(false, "已就绪(本地)"));
-        };
-        document.body.appendChild(script);
+          let parsedData = null;
+          // 处理兼容 JSON / JSONP 回调包装
+          try {
+            if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
+              parsedData = JSON.parse(text);
+            } else {
+              const startIdx = text.indexOf('(');
+              const endIdx = text.lastIndexOf(')');
+              if (startIdx !== -1 && endIdx !== -1) {
+                parsedData = JSON.parse(text.substring(startIdx + 1, endIdx));
+              }
+            }
+          } catch(e) {}
+          
+          if (callback && parsedData) callback(parsedData);
+        })
+        .catch(err => {
+          // 备用方案 2：如果 fetch 遇到跨域限制，自动无缝降级为动态 script JSONP
+          if (isCompleted) return;
+          
+          const cbName = 'google_pos_cb_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+          queryArr.push('callback=' + cbName);
+          
+          window[cbName] = function(data) {
+            if (isCompleted) return;
+            isCompleted = true;
+            delete window[cbName];
+            const script = document.getElementById(cbName);
+            if (script) script.remove();
+            setSyncStatus(false, "已就绪(云端)");
+            if (callback) callback(data);
+          };
+
+          const script = document.createElement('script');
+          script.id = cbName;
+          script.src = GOOGLE_SCRIPT_URL + '?' + queryArr.join('&');
+          script.onerror = function() {
+            if (isCompleted) return;
+            isCompleted = true;
+            delete window[cbName];
+            script.remove();
+            setSyncStatus(false, "已就绪(本地)");
+          };
+          document.body.appendChild(script);
+        });
       }
 
       // 🌟 强效云端数据拉取与多设备同步
@@ -795,7 +793,7 @@
         renderDailyReport();
       }
 
-      function rahJ91ZuNL8Y2px8iYciYeHN8sfSh5eXH8() {
+      function r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8() {
         targetDate = currentBusinessDate;
         const picker = document.getElementById('target-date-picker');
         if(picker) picker.value = targetDate;
