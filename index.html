@@ -74,11 +74,6 @@
 
         <div class="bg-white p-3.5 rounded-xl shadow-sm border border-slate-300 flex items-center justify-between gap-3">
           <div class="flex-1">
-            <label class="block text-xs font-bold text-slate-600 mb-1">开单员工 / Staff Account</label>
-            <select id="staff-select" onchange="changeStaffOperator(this.value)" class="w-full bg-slate-50 border-2 border-slate-300 rounded-lg px-2.5 py-1.5 text-sm font-black text-slate-800 focus:ring-2 focus:ring-amber-500 focus:outline-none">
-            </select>
-          </div>
-          <div class="flex-1">
             <label class="block text-xs font-bold text-slate-600 mb-1">输入桌号 / Table No.</label>
             <input type="text" id="table-input" value="1" placeholder="例如: 1 或 Takeaway" class="w-full bg-slate-50 border-2 border-slate-300 rounded-lg px-3 py-2 text-base font-black text-slate-800 focus:ring-2 focus:ring-amber-500 focus:outline-none">
           </div>
@@ -118,7 +113,6 @@
               <button onclick="closeCustomModal()" class="text-slate-400 text-lg hover:text-slate-700"><i class="fa-solid fa-xmark"></i></button>
             </div>
             
-            <!-- 魔鬼鱼专属：部位选择容器 -->
             <div id="part-selection-container">
               <label class="block text-xs font-bold text-slate-600 mb-1">鱼身部位 / Fish Part:</label>
               <div class="grid grid-cols-3 gap-1.5 text-xs font-bold">
@@ -182,7 +176,6 @@
             <p class="text-slate-400 text-xs font-bold text-center py-4">暂未选择海鲜或商品</p>
           </div>
 
-          <!-- 折扣/抹零区域 -->
           <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl flex items-center justify-between gap-3 text-xs font-bold">
             <div>
               <span class="text-slate-700 block">优惠折扣 / 抹零 (Discount)</span>
@@ -389,19 +382,6 @@
 
       <!-- 5. 设置 TAB -->
       <section id="tab-settings" class="space-y-4 hidden">
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-300 space-y-3">
-          <h2 class="font-black text-slate-800 text-sm border-b pb-2 flex items-center gap-1.5">
-            <i class="fa-solid fa-users-gear text-amber-600"></i> 👥 员工账号管理 Staff Accounts
-          </h2>
-          <div class="space-y-2 text-xs font-bold">
-            <div class="flex gap-2">
-              <input type="text" id="new-staff-name" placeholder="新员工名字 (例如: Alex)" class="flex-1 border border-slate-300 rounded-lg p-2 font-black">
-              <button onclick="addStaffName()" class="bg-amber-500 hover:bg-amber-600 text-white font-black px-4 py-2 rounded-lg shadow">+ 添加员工</button>
-            </div>
-            <div id="staff-list-container" class="space-y-1.5 pt-1 divide-y divide-slate-100 max-h-40 overflow-y-auto"></div>
-          </div>
-        </div>
-
         <div class="bg-white p-4 rounded-xl shadow-sm border border-emerald-300 bg-emerald-50/20 space-y-3">
           <div class="flex items-center space-x-2 text-emerald-800"><i class="fa-solid fa-plus-circle text-emerald-600 text-lg"></i><h2 class="font-black text-sm">添加新海鲜 / 临时鱼类</h2></div>
           <div class="space-y-2 text-xs font-bold">
@@ -464,69 +444,6 @@
 
     <script>
       const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz2brt4vYOFaUtkQXEr9veqzLf2Yc0YMZKKr3CvCWTukr6hPIiiNl106WBTG0eWmWU1/exec";
-
-      const defaultStaffList = ['WK', 'KC', 'SIM'];
-      let staffList = JSON.parse(localStorage.getItem('ib_staff_list')) || defaultStaffList;
-      let currentStaff = localStorage.getItem('ib_staff_operator') || staffList[0] || 'WK';
-
-      function changeStaffOperator(val) {
-        currentStaff = val;
-        localStorage.setItem('ib_staff_operator', val);
-      }
-
-      function renderStaffSelect() {
-        const select = document.getElementById('staff-select');
-        if (!select) return;
-        select.innerHTML = '';
-        staffList.forEach(name => {
-          const opt = document.createElement('option');
-          opt.value = name;
-          opt.innerText = `👤 ${name}`;
-          if (name === currentStaff) opt.selected = true;
-          select.appendChild(opt);
-        });
-      }
-
-      function addStaffName() {
-        const input = document.getElementById('new-staff-name');
-        const name = input ? input.value.trim() : '';
-        if (!name) { alert('请输入员工姓名！'); return; }
-        if (staffList.includes(name)) { alert('该员工名字已存在！'); return; }
-        staffList.push(name);
-        localStorage.setItem('ib_staff_list', JSON.stringify(staffList));
-        if (input) input.value = '';
-        renderStaffSelect();
-        renderStaffListSettings();
-      }
-
-      function deleteStaffName(name) {
-        if (staffList.length <= 1) { alert('至少保留一名员工！'); return; }
-        if (confirm(`确认删除员工 "${name}" 吗？`)) {
-          staffList = staffList.filter(s => s !== name);
-          if (currentStaff === name) {
-            currentStaff = staffList[0];
-            localStorage.setItem('ib_staff_operator', currentStaff);
-          }
-          localStorage.setItem('ib_staff_list', JSON.stringify(staffList));
-          renderStaffSelect();
-          renderStaffListSettings();
-        }
-      }
-
-      function renderStaffListSettings() {
-        const container = document.getElementById('staff-list-container');
-        if (!container) return;
-        container.innerHTML = '';
-        staffList.forEach(name => {
-          const div = document.createElement('div');
-          div.className = 'flex justify-between items-center text-xs font-bold py-1.5';
-          div.innerHTML = `
-            <span class="text-slate-800">👤 ${name}</span>
-            <button onclick="deleteStaffName('${name}')" class="text-rose-600 text-xs hover:text-rose-800"><i class="fa-solid fa-trash-can mr-1"></i>删除</button>
-          `;
-          container.appendChild(div);
-        });
-      }
 
       function vibrate(pattern) {
         if (typeof window !== 'undefined' && 'navigator' in window && 'vibrate' in navigator) {
@@ -688,17 +605,10 @@
               if (typeof parsedItems === 'string') {
                 try { parsedItems = JSON.parse(parsedItems); } catch(e) { parsedItems = []; }
               }
-              
-              let rawStaff = o.staff;
-              if (!rawStaff || rawStaff === 'undefined' || rawStaff === 'null' || rawStaff === '' || rawStaff === '未知') {
-                rawStaff = currentStaff || 'WK';
-              }
-
               return { 
                 ...o, 
                 id: String(o.id),
                 date: normalizeDate(o.date),
-                staff: rawStaff,
                 items: Array.isArray(parsedItems) ? parsedItems : [] 
               };
             });
@@ -730,12 +640,6 @@
           const num = parseInt(String(o.orderNum || '').replace('#', '')) || 0;
           return num > max ? num : max;
         }, 0);
-
-        const selectEl = document.getElementById('staff-select');
-        if (selectEl && selectEl.value) {
-          currentStaff = selectEl.value;
-          localStorage.setItem('ib_staff_operator', currentStaff);
-        }
         
         sendJsonp({ action: 'getNextOrderNum', date: currentBusinessDate }, function(res) {
           let orderNumStr = '#001';
@@ -766,7 +670,6 @@
             date: currentBusinessDate,
             time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
             table: tableVal, 
-            staff: currentStaff, 
             items: itemsDetail, 
             rawTotal: rawTotal,
             discount: discountVal, 
@@ -779,18 +682,15 @@
           orders.push(newOrder);
           localStorage.setItem('ib_orders', JSON.stringify(orders));
           
-          // 🌟 核心强制传参：直接把 staff 和 staffName 独立作为顶层参数发送
           sendJsonp({ 
             action: 'saveOrder', 
-            order: JSON.stringify(newOrder), 
-            staff: currentStaff, 
-            staffName: currentStaff 
+            order: JSON.stringify(newOrder)
           }, function(saveRes) {
             console.log("云端写入成功:", saveRes);
             setTimeout(fetchOrdersFromCloud, 300);
           });
 
-          alert(`✅ 开单成功！单号: ${orderNumStr} | 桌号: ${tableVal} | 开单员: ${currentStaff}`);
+          alert(`✅ 开单成功！单号: ${orderNumStr} | 桌号: ${tableVal}`);
           clearCurrentCart();
           setCartPayStatus('unpaid');
           updateNextOrderId();
@@ -815,7 +715,6 @@
         const mPicker = document.getElementById('monthly-picker');
         if (mPicker) mPicker.value = currentBusinessDate.slice(0, 7);
 
-        renderStaffSelect();
         renderProductsPOS();
         renderKitchenDisplay();
         updateNextOrderId();
@@ -900,10 +799,10 @@
       function exportDailyCSV() {
         const validOrders = orders.filter(o => o.date === targetDate && o.status !== 'cancelled');
         if (validOrders.length === 0) { alert('暂无有效订单！'); return; }
-        let csvContent = "\uFEFF单号,桌号,开单员工,下单时间,付款方式,菜品详情,优惠(RM),实收金额(RM)\n";
+        let csvContent = "\uFEFF单号,桌号,下单时间,付款方式,菜品详情,优惠(RM),实收金额(RM)\n";
         validOrders.forEach(o => {
           let itemsStr = o.items.map(i => `${i.name}(${i.qtyInfo})`).join(' | ');
-          csvContent += `"${o.orderNum}","${o.table}","${o.staff || '未知'}","${o.time}","${o.payStatus}","${itemsStr}",${o.discount.toFixed(2)},${o.finalAmount.toFixed(2)}\n`;
+          csvContent += `"${o.orderNum}","${o.table}","${o.time}","${o.payStatus}","${itemsStr}",${o.discount.toFixed(2)},${o.finalAmount.toFixed(2)}\n`;
         });
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
@@ -1205,7 +1104,6 @@
               <div class="flex items-center gap-2">
                 <span class="text-base font-black bg-slate-900 text-amber-400 px-2 py-0.5 rounded">${o.orderNum}</span>
                 <span class="font-bold text-slate-500 text-xs">桌号: <input type="text" value="${o.table}" onchange="updateOrderTable('${o.id}', this.value)" class="w-12 bg-slate-100 border border-slate-300 rounded text-center text-xs font-black text-slate-800"></span>
-                <span class="bg-blue-100 text-blue-900 text-[10px] font-black px-1.5 py-0.5 rounded border border-blue-200">👤 ${o.staff || '未知'}</span>
               </div>
               <div class="flex items-center gap-1.5">
                 <span class="${isUnpaid ? 'bg-rose-600' : 'bg-emerald-600'} text-white font-black text-xs px-2 py-0.5 rounded">${payBadgeText}</span>
@@ -1365,7 +1263,7 @@
           allTargetOrders.slice().reverse().forEach(o => {
             const div = document.createElement('div');
             div.className = 'p-3 text-xs font-bold border-b flex justify-between items-center';
-            div.innerHTML = `<span>${o.orderNum} (桌号: ${o.table}) [👤 ${o.staff || '未知'}] - RM ${o.finalAmount.toFixed(2)}</span><button onclick="cancelOrder('${o.id}')" class="text-rose-600">取消</button>`;
+            div.innerHTML = `<span>${o.orderNum} (桌号: ${o.table}) - RM ${o.finalAmount.toFixed(2)}</span><button onclick="cancelOrder('${o.id}')" class="text-rose-600">取消</button>`;
             listContainer.appendChild(div);
           });
         }
@@ -1401,7 +1299,6 @@
       }
 
       function renderSettings() {
-        renderStaffListSettings();
         const select = document.getElementById('calc-product-select');
         if(select) {
           select.innerHTML = '';
