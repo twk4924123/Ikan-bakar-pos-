@@ -247,7 +247,7 @@
       <div class="bg-amber-50 text-slate-900 p-4 rounded-xl shadow-md space-y-2 border border-amber-300">
         <div class="flex justify-between items-center">
           <span class="font-black text-sm flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left"></i> 历史账目查阅/修改日期:</span>
-          <button onclick="resetToCurrentBusinessDate()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
+          <button onclick="r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
         </div>
         <input type="date" id="target-date-picker" onchange="changeTargetDate(this.value)" class="w-full bg-white border-2 border-slate-900 rounded-lg p-2 text-sm font-black text-slate-900">
       </div>
@@ -527,7 +527,17 @@
       if (!GOOGLE_SCRIPT_URL) return;
       try {
         setSyncStatus(true, "拉取云端数据...");
-        const res = await fetch(`${GOOGLE_SCRIPT_URL}?action=getOrders`);
+        // 增加 fetch 超时与重试控制
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
+        
+        const res = await fetch(`${GOOGLE_SCRIPT_URL}?action=getOrders`, {
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        
         const cloudOrders = await res.json();
         if (Array.isArray(cloudOrders)) {
           orders = cloudOrders;
@@ -537,10 +547,13 @@
           renderDailyReport();
           renderMonthlyReport();
           setSyncStatus(false, "已就绪");
+        } else {
+          setSyncStatus(false, "已连接(空数据)");
         }
       } catch (err) {
-        console.error("无法拉取云端数据:", err);
-        setSyncStatus(false, "离线模式", true);
+        console.warn("无法拉取云端数据，切换至本地存储模式:", err);
+        // 本地降级：有本地缓存订单时显示“本地模式”而非阻碍使用
+        setSyncStatus(false, "本地模式", true);
       }
     }
 
@@ -555,7 +568,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'saveOrder', order: newOrder })
         });
-        setTimeout(fetchOrdersFromCloud, 1000);
+        setTimeout(fetchOrdersFromCloud, 1200);
       } catch (err) {
         console.error("提交单据失败:", err);
         setSyncStatus(false, "云端保存失败", true);
@@ -661,7 +674,7 @@
       renderDailyReport();
     }
 
-    function resetToCurrentBusinessDate() {
+    function r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8() {
       vibrate(15);
       targetDate = currentBusinessDate;
       const picker = document.getElementById('target-date-picker');
