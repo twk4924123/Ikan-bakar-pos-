@@ -1059,8 +1059,13 @@
         const roundedTotal = customRound(rawTotal);
         const finalAmount = Math.max(0, roundedTotal - discountVal);
 
-        const todayOrdersCount = orders.filter(o => o.date === currentBusinessDate).length;
-        const orderNumStr = '#' + String(todayOrdersCount + 1).padStart(3, '0');
+        // 🛡️ 绝对防撞单号计算：找出今天所有订单中最大的序号，确保永远完美连号（#001, #002, #003...）
+        const todayOrders = orders.filter(o => o.date === currentBusinessDate);
+        const maxSeq = todayOrders.reduce((max, o) => {
+          const num = parseInt((o.orderNum || '').replace('#', '')) || 0;
+          return num > max ? num : max;
+        }, 0);
+        const orderNumStr = '#' + String(maxSeq + 1).padStart(3, '0');
 
         const newOrder = {
           id: Date.now(), orderNum: orderNumStr, date: currentBusinessDate,
@@ -1076,7 +1081,7 @@
         // 提交到云端 Google 表格
         saveOrderToCloud(newOrder);
 
-        alert(`✅ 开单成功！桌号: ${tableVal} (归属营业日: ${currentBusinessDate}, 实收: RM ${finalAmount.toFixed(2)})`);
+        alert(`✅ 开单成功！单号: ${orderNumStr} | 桌号: ${tableVal}`);
         clearCurrentCart();
         setCartPayStatus('unpaid');
         updateNextOrderId();
