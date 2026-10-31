@@ -74,6 +74,11 @@
 
         <div class="bg-white p-3.5 rounded-xl shadow-sm border border-slate-300 flex items-center justify-between gap-3">
           <div class="flex-1">
+            <label class="block text-xs font-bold text-slate-600 mb-1">开单员工 / Staff Account</label>
+            <select id="staff-select" onchange="changeStaffOperator(this.value)" class="w-full bg-slate-50 border-2 border-slate-300 rounded-lg px-2.5 py-1.5 text-sm font-black text-slate-800 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+            </select>
+          </div>
+          <div class="flex-1">
             <label class="block text-xs font-bold text-slate-600 mb-1">输入桌号 / Table No.</label>
             <input type="text" id="table-input" value="1" placeholder="例如: 1 或 Takeaway" class="w-full bg-slate-50 border-2 border-slate-300 rounded-lg px-3 py-2 text-base font-black text-slate-800 focus:ring-2 focus:ring-amber-500 focus:outline-none">
           </div>
@@ -247,7 +252,7 @@
         <div class="bg-amber-50 text-slate-900 p-4 rounded-xl shadow-md space-y-2 border border-amber-300">
           <div class="flex justify-between items-center">
             <span class="font-black text-sm flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left"></i> 历史账目查阅/修改日期:</span>
-            <button onclick="r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
+            <button onclick="rahJ91ZuNL8Y2px8iYciYeHN8sfSh5eXH8()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
           </div>
           <input type="date" id="target-date-picker" onchange="changeTargetDate(this.value)" class="w-full bg-white border-2 border-slate-900 rounded-lg p-2 text-sm font-black text-slate-900">
         </div>
@@ -386,6 +391,20 @@
 
       <!-- 5. 设置 TAB -->
       <section id="tab-settings" class="space-y-4 hidden">
+        <!-- 员工名称管理模块 -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-300 space-y-3">
+          <h2 class="font-black text-slate-800 text-sm border-b pb-2 flex items-center gap-1.5">
+            <i class="fa-solid fa-users-gear text-amber-600"></i> 👥 员工账号管理 Staff Accounts
+          </h2>
+          <div class="space-y-2 text-xs font-bold">
+            <div class="flex gap-2">
+              <input type="text" id="new-staff-name" placeholder="新员工名字 (例如: Alex)" class="flex-1 border border-slate-300 rounded-lg p-2 font-black">
+              <button onclick="addStaffName()" class="bg-amber-500 hover:bg-amber-600 text-white font-black px-4 py-2 rounded-lg shadow">+ 添加员工</button>
+            </div>
+            <div id="staff-list-container" class="space-y-1.5 pt-1 divide-y divide-slate-100 max-h-40 overflow-y-auto"></div>
+          </div>
+        </div>
+
         <div class="bg-white p-4 rounded-xl shadow-sm border border-emerald-300 bg-emerald-50/20 space-y-3">
           <div class="flex items-center space-x-2 text-emerald-800"><i class="fa-solid fa-plus-circle text-emerald-600 text-lg"></i><h2 class="font-black text-sm">添加新海鲜 / 临时鱼类</h2></div>
           <div class="space-y-2 text-xs font-bold">
@@ -450,6 +469,70 @@
       // 🌟 您最新的 Google Apps Script API 网址 🌟
       const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz2brt4vYOFaUtkQXEr9veqzLf2Yc0YMZKKr3CvCWTukr6hPIiiNl106WBTG0eWmWU1/exec";
 
+      // 默认员工名单与记住开单员工
+      const defaultStaffList = ['WK', 'KC', 'SIM'];
+      let staffList = JSON.parse(localStorage.getItem('ib_staff_list')) || defaultStaffList;
+      let currentStaff = localStorage.getItem('ib_staff_operator') || staffList[0] || 'WK';
+
+      function changeStaffOperator(val) {
+        currentStaff = val;
+        localStorage.setItem('ib_staff_operator', val);
+      }
+
+      function renderStaffSelect() {
+        const select = document.getElementById('staff-select');
+        if (!select) return;
+        select.innerHTML = '';
+        staffList.forEach(name => {
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.innerText = `👤 ${name}`;
+          if (name === currentStaff) opt.selected = true;
+          select.appendChild(opt);
+        });
+      }
+
+      function addStaffName() {
+        const input = document.getElementById('new-staff-name');
+        const name = input ? input.value.trim() : '';
+        if (!name) { alert('请输入员工姓名！'); return; }
+        if (staffList.includes(name)) { alert('该员工名字已存在！'); return; }
+        staffList.push(name);
+        localStorage.setItem('ib_staff_list', JSON.stringify(staffList));
+        if (input) input.value = '';
+        renderStaffSelect();
+        renderStaffListSettings();
+      }
+
+      function deleteStaffName(name) {
+        if (staffList.length <= 1) { alert('至少保留一名员工！'); return; }
+        if (confirm(`确认删除员工 "${name}" 吗？`)) {
+          staffList = staffList.filter(s => s !== name);
+          if (currentStaff === name) {
+            currentStaff = staffList[0];
+            localStorage.setItem('ib_staff_operator', currentStaff);
+          }
+          localStorage.setItem('ib_staff_list', JSON.stringify(staffList));
+          renderStaffSelect();
+          renderStaffListSettings();
+        }
+      }
+
+      function renderStaffListSettings() {
+        const container = document.getElementById('staff-list-container');
+        if (!container) return;
+        container.innerHTML = '';
+        staffList.forEach(name => {
+          const div = document.createElement('div');
+          div.className = 'flex justify-between items-center text-xs font-bold py-1.5';
+          div.innerHTML = `
+            <span class="text-slate-800">👤 ${name}</span>
+            <button onclick="deleteStaffName('${name}')" class="text-rose-600 text-xs hover:text-rose-800"><i class="fa-solid fa-trash-can mr-1"></i>删除</button>
+          `;
+          container.appendChild(div);
+        });
+      }
+
       function vibrate(pattern) {
         if (typeof window !== 'undefined' && 'navigator' in window && 'vibrate' in navigator) {
           navigator.vibrate(pattern);
@@ -469,7 +552,7 @@
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       }
 
-      // 🌟 强制日期归一化解析（防止 Google Sheet 时区与格式污染）
+      // 🌟 强制日期归一化解析
       function normalizeDate(dateVal) {
         if (!dateVal) return getSystemTodayStr();
         let str = String(dateVal).trim();
@@ -531,7 +614,7 @@
         }
       }
 
-      // 🌟 极速兼容传输网络层 (针对小米浏览器/Safari等全平台拦截强效穿透)
+      // 🌟 极速兼容传输网络层
       function sendJsonp(params, callback) {
         if (!GOOGLE_SCRIPT_URL) return;
         setSyncStatus(true, "与云端通信中...");
@@ -543,13 +626,11 @@
           queryArr.push(encodeURIComponent(k) + '=' + encodeURIComponent(val));
         }
         
-        // 强行穿透浏览器/手机自带拦截的随机时间戳
         const nocacheStr = '_nc=' + Date.now() + '_' + Math.floor(Math.random() * 100000);
         queryArr.push(nocacheStr);
 
         let isCompleted = false;
 
-        // 优先方案 1：直接通过 Fetch 接口极速请求（克服小米浏览器对 Script 标签的广告拦截）
         fetch(GOOGLE_SCRIPT_URL + '?' + queryArr.join('&'), {
           method: 'GET',
           cache: 'no-store',
@@ -562,7 +643,6 @@
           setSyncStatus(false, "已就绪(云端)");
           
           let parsedData = null;
-          // 处理兼容 JSON / JSONP 回调包装
           try {
             if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
               parsedData = JSON.parse(text);
@@ -578,7 +658,6 @@
           if (callback && parsedData) callback(parsedData);
         })
         .catch(err => {
-          // 备用方案 2：如果 fetch 遇到跨域限制，自动无缝降级为动态 script JSONP
           if (isCompleted) return;
           
           const cbName = 'google_pos_cb_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
@@ -620,16 +699,13 @@
               return { 
                 ...o, 
                 id: String(o.id),
-                date: normalizeDate(o.date), // 强行清理日期格式
+                date: normalizeDate(o.date),
                 items: Array.isArray(parsedItems) ? parsedItems : [] 
               };
             });
             
-            // 直接以云端完整数据覆盖/合并本地
             const mergedMap = new Map();
-            // 先放本地
             orders.forEach(o => mergedMap.set(String(o.id), { ...o, date: normalizeDate(o.date) }));
-            // 云端覆盖本地
             cloudOrders.forEach(co => mergedMap.set(String(co.id), co));
             
             orders = Array.from(mergedMap.values());
@@ -643,15 +719,14 @@
         });
       }
 
-      // 🌟 开单：强行向云端确定实时最新单号
+      // 🌟 开单：向云端申请实时最新单号
       function submitOrder() {
         const keys = Object.keys(currentCart);
         if (keys.length === 0) { vibrate([30, 30]); alert('清单为空！'); return; }
         vibrate([80, 50, 80]);
 
-        setSyncStatus(true, "正在向云端申请自增单号...");
+        setSyncStatus(true, "正在申请单号...");
         
-        // 双保险计算单号：优先取当前已收到的最大的单号序号
         const todayOrders = orders.filter(o => normalizeDate(o.date) === currentBusinessDate);
         const maxSeq = todayOrders.reduce((max, o) => {
           const num = parseInt(String(o.orderNum || '').replace('#', '')) || 0;
@@ -687,6 +762,7 @@
             date: currentBusinessDate,
             time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
             table: tableVal, 
+            staff: currentStaff,
             items: itemsDetail, 
             rawTotal: rawTotal,
             discount: discountVal, 
@@ -699,13 +775,12 @@
           orders.push(newOrder);
           localStorage.setItem('ib_orders', JSON.stringify(orders));
           
-          // 提交写入 Google Sheet
           sendJsonp({ action: 'saveOrder', order: newOrder }, function(saveRes) {
             console.log("云端写入成功:", saveRes);
             setTimeout(fetchOrdersFromCloud, 300);
           });
 
-          alert(`✅ 开单成功！单号: ${orderNumStr} | 桌号: ${tableVal}`);
+          alert(`✅ 开单成功！单号: ${orderNumStr} | 桌号: ${tableVal} | 开单员: ${currentStaff}`);
           clearCurrentCart();
           setCartPayStatus('unpaid');
           updateNextOrderId();
@@ -730,6 +805,7 @@
         const mPicker = document.getElementById('monthly-picker');
         if (mPicker) mPicker.value = currentBusinessDate.slice(0, 7);
 
+        renderStaffSelect();
         renderProductsPOS();
         renderKitchenDisplay();
         updateNextOrderId();
@@ -793,7 +869,7 @@
         renderDailyReport();
       }
 
-      function r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8() {
+      function rahJ91ZuNL8Y2px8iYciYeHN8sfSh5eXH8() {
         targetDate = currentBusinessDate;
         const picker = document.getElementById('target-date-picker');
         if(picker) picker.value = targetDate;
@@ -814,10 +890,10 @@
       function exportDailyCSV() {
         const validOrders = orders.filter(o => o.date === targetDate && o.status !== 'cancelled');
         if (validOrders.length === 0) { alert('暂无有效订单！'); return; }
-        let csvContent = "\uFEFF单号,桌号,下单时间,付款方式,菜品详情,优惠(RM),实收金额(RM)\n";
+        let csvContent = "\uFEFF单号,桌号,开单员工,下单时间,付款方式,菜品详情,优惠(RM),实收金额(RM)\n";
         validOrders.forEach(o => {
           let itemsStr = o.items.map(i => `${i.name}(${i.qtyInfo})`).join(' | ');
-          csvContent += `"${o.orderNum}","${o.table}","${o.time}","${o.payStatus}","${itemsStr}",${o.discount.toFixed(2)},${o.finalAmount.toFixed(2)}\n`;
+          csvContent += `"${o.orderNum}","${o.table}","${o.staff || '未知'}","${o.time}","${o.payStatus}","${itemsStr}",${o.discount.toFixed(2)},${o.finalAmount.toFixed(2)}\n`;
         });
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
@@ -1119,6 +1195,7 @@
               <div class="flex items-center gap-2">
                 <span class="text-base font-black bg-slate-900 text-amber-400 px-2 py-0.5 rounded">${o.orderNum}</span>
                 <span class="font-bold text-slate-500 text-xs">桌号: ${o.table}</span>
+                <span class="bg-blue-100 text-blue-900 text-[10px] font-black px-1.5 py-0.5 rounded border border-blue-200">👤 ${o.staff || '未知'}</span>
               </div>
               <span class="${isUnpaid ? 'bg-rose-600' : 'bg-emerald-600'} text-white font-black text-xs px-2 py-0.5 rounded">${payBadgeText}</span>
             </div>
@@ -1266,7 +1343,7 @@
           allTargetOrders.slice().reverse().forEach(o => {
             const div = document.createElement('div');
             div.className = 'p-3 text-xs font-bold border-b flex justify-between items-center';
-            div.innerHTML = `<span>${o.orderNum} (桌号: ${o.table}) - RM ${o.finalAmount.toFixed(2)}</span><button onclick="cancelOrder(${o.id})" class="text-rose-600">取消</button>`;
+            div.innerHTML = `<span>${o.orderNum} (桌号: ${o.table}) [👤 ${o.staff || '未知'}] - RM ${o.finalAmount.toFixed(2)}</span><button onclick="cancelOrder(${o.id})" class="text-rose-600">取消</button>`;
             listContainer.appendChild(div);
           });
         }
@@ -1302,6 +1379,7 @@
       }
 
       function renderSettings() {
+        renderStaffListSettings();
         const select = document.getElementById('calc-product-select');
         if(select) {
           select.innerHTML = '';
