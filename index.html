@@ -247,7 +247,7 @@
         <div class="bg-amber-50 text-slate-900 p-4 rounded-xl shadow-md space-y-2 border border-amber-300">
           <div class="flex justify-between items-center">
             <span class="font-black text-sm flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left"></i> 历史账目查阅/修改日期:</span>
-            <button onclick="rahJ91ZuNL8Y2px8iYciYeHN8sfSh5eXH8()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
+            <button onclick="r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8()" class="bg-slate-900 text-amber-400 px-2 py-1 rounded text-xs font-black shadow">回到当前营业日</button>
           </div>
           <input type="date" id="target-date-picker" onchange="changeTargetDate(this.value)" class="w-full bg-white border-2 border-slate-900 rounded-lg p-2 text-sm font-black text-slate-900">
         </div>
@@ -523,7 +523,7 @@
       function sendJsonp(params, callback) {
         if (!GOOGLE_SCRIPT_URL) return;
         setSyncStatus(true, "与云端通信中...");
-        const cbName = 'google_pos_cb_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+        const cbName = 'google_pos_cb_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
         
         let isFinished = false;
         const timeoutId = setTimeout(function() {
@@ -534,7 +534,7 @@
             if (script) script.remove();
             setSyncStatus(false, "已就绪(本地)");
           }
-        }, 5000);
+        }, 6000);
 
         window[cbName] = function(data) {
           if (isFinished) return;
@@ -570,7 +570,7 @@
         document.body.appendChild(script);
       }
 
-      // 🌟 从云端实时拉取订单，合并并刷新界面
+      // 🌟 强效云端数据拉取与多设备同步
       function fetchOrdersFromCloud() {
         sendJsonp({ action: 'getOrders' }, function(res) {
           if (res && res.status === 'success' && Array.isArray(res.data)) {
@@ -581,66 +581,51 @@
               }
               return { 
                 ...o, 
-                id: Number(o.id) || o.id, 
+                id: String(o.id), // 统一转为字符串方便准确比较
                 items: Array.isArray(parsedItems) ? parsedItems : [] 
               };
             });
             
-            if (cloudOrders.length > 0) {
-              let hasChanges = false;
-              
-              cloudOrders.forEach(co => {
-                let localIndex = orders.findIndex(lo => String(lo.id) === String(co.id));
-                if (localIndex === -1) {
-                  localIndex = orders.findIndex(lo => lo.date === co.date && lo.orderNum === co.orderNum && lo.time === co.time);
-                }
-
-                if (localIndex === -1) {
-                  orders.push(co);
-                  hasChanges = true;
-                } else {
-                  if (orders[localIndex].status !== co.status || 
-                      orders[localIndex].payStatus !== co.payStatus || 
-                      orders[localIndex].table !== co.table) {
-                    orders[localIndex].status = co.status;
-                    orders[localIndex].payStatus = co.payStatus;
-                    orders[localIndex].table = co.table;
-                    hasChanges = true;
-                  }
-                }
-              });
-
-              if (hasChanges || cloudOrders.length > orders.length) {
-                localStorage.setItem('ib_orders', JSON.stringify(orders));
-              }
-              
-              updateNextOrderId();
-              renderKitchenDisplay();
-              renderDailyReport();
-              renderMonthlyReport();
-            }
+            // 直接以云端完整数据覆盖/合并本地
+            const mergedMap = new Map();
+            // 先放本地
+            orders.forEach(o => mergedMap.set(String(o.id), o));
+            // 云端覆盖本地
+            cloudOrders.forEach(co => mergedMap.set(String(co.id), co));
+            
+            orders = Array.from(mergedMap.values());
+            localStorage.setItem('ib_orders', JSON.stringify(orders));
+            
+            updateNextOrderId();
+            renderKitchenDisplay();
+            renderDailyReport();
+            renderMonthlyReport();
           }
         });
       }
 
-      // 🌟 开单前向云端请求最新的标准单号，确保多台设备绝对不会撞号
+      // 🌟 开单：强行向云端确定实时最新单号
       function submitOrder() {
         const keys = Object.keys(currentCart);
         if (keys.length === 0) { vibrate([30, 30]); alert('清单为空！'); return; }
         vibrate([80, 50, 80]);
 
-        setSyncStatus(true, "正在向云端获取单号...");
+        setSyncStatus(true, "正在向云端申请自增单号...");
+        
+        // 双保险计算单号：优先取当前已收到的最大的单号序号
+        const todayOrders = orders.filter(o => o.date === currentBusinessDate);
+        const maxSeq = todayOrders.reduce((max, o) => {
+          const num = parseInt(String(o.orderNum || '').replace('#', '')) || 0;
+          return num > max ? num : max;
+        }, 0);
+        
         sendJsonp({ action: 'getNextOrderNum', date: currentBusinessDate }, function(res) {
-          let orderNumStr = "#001";
+          let orderNumStr = '#001';
           if (res && res.status === 'success' && res.nextOrderNum) {
-            orderNumStr = res.nextOrderNum;
+            const cloudSeq = parseInt(res.nextOrderNum.replace('#', '')) || 0;
+            const finalSeq = Math.max(cloudSeq, maxSeq + 1);
+            orderNumStr = '#' + String(finalSeq).padStart(3, '0');
           } else {
-            // 降级本地计算
-            const todayOrders = orders.filter(o => o.date === currentBusinessDate);
-            const maxSeq = todayOrders.reduce((max, o) => {
-              const num = parseInt((o.orderNum || '').replace('#', '')) || 0;
-              return num > max ? num : max;
-            }, 0);
             orderNumStr = '#' + String(maxSeq + 1).padStart(3, '0');
           }
 
@@ -658,20 +643,27 @@
           const finalAmount = Math.max(0, roundedTotal - discountVal);
 
           const newOrder = {
-            id: Date.now(), orderNum: orderNumStr, date: currentBusinessDate,
+            id: String(Date.now() + Math.floor(Math.random() * 1000)), 
+            orderNum: orderNumStr, 
+            date: currentBusinessDate,
             time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
-            table: tableVal, items: itemsDetail, rawTotal: rawTotal,
-            discount: discountVal, finalAmount: finalAmount, totalCost: totalCost, 
-            status: 'pending', payStatus: cartPayStatus
+            table: tableVal, 
+            items: itemsDetail, 
+            rawTotal: rawTotal,
+            discount: discountVal, 
+            finalAmount: finalAmount, 
+            totalCost: totalCost, 
+            status: 'pending', 
+            payStatus: cartPayStatus
           };
 
           orders.push(newOrder);
           localStorage.setItem('ib_orders', JSON.stringify(orders));
           
-          // 发送保存
+          // 提交写入 Google Sheet
           sendJsonp({ action: 'saveOrder', order: newOrder }, function(saveRes) {
             console.log("云端写入成功:", saveRes);
-            setTimeout(fetchOrdersFromCloud, 200);
+            setTimeout(fetchOrdersFromCloud, 300);
           });
 
           alert(`✅ 开单成功！单号: ${orderNumStr} | 桌号: ${tableVal}`);
@@ -762,7 +754,7 @@
         renderDailyReport();
       }
 
-      function rahJ91ZuNL8Y2px8iYciYeHN8sfSh5eXH8() {
+      function r9yMnTm4NSzvG9rrwjM2ec8xZgh1cafXH8() {
         targetDate = currentBusinessDate;
         const picker = document.getElementById('target-date-picker');
         if(picker) picker.value = targetDate;
