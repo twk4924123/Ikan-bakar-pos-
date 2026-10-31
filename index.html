@@ -585,14 +585,33 @@
               return { ...o, items: Array.isArray(parsedItems) ? parsedItems : [] };
             });
             
-            // 🛡️ 防冲撞智能合并：如果云端返回的订单数量大于或等于本地，才更新；若本地订单更多，保留本地，绝不盲目覆盖！
-            if (cloudOrders.length >= orders.length) {
-              orders = cloudOrders;
-              localStorage.setItem('ib_orders', JSON.stringify(orders));
-              updateNextOrderId();
-              renderKitchenDisplay();
-              renderDailyReport();
-              renderMonthlyReport();
+            // 🛡️ 终极防覆盖保护：只有当云端订单总数大于本地，或者云端有新出餐/付款状态变更时，才进行智能增量合并，绝不盲目整组替换！
+            if (cloudOrders.length > 0) {
+              let hasChanges = false;
+              cloudOrders.forEach(co => {
+                const localIndex = orders.findIndex(lo => lo.id === co.id);
+                if (localIndex === -1) {
+                  // 云端有本地没有的新单，追加进来
+                  orders.push(co);
+                  hasChanges = true;
+                } else {
+                  // 如果云端的状态或桌号有更新（比如其他手机点了解锁或出餐），同步更新本地
+                  if (orders[localIndex].status !== co.status || orders[localIndex].payStatus !== co.payStatus || orders[localIndex].table !== co.table) {
+                    orders[localIndex].status = co.status;
+                    orders[localIndex].payStatus = co.payStatus;
+                    orders[localIndex].table = co.table;
+                    hasChanges = true;
+                  }
+                }
+              });
+
+              if (hasChanges || cloudOrders.length > orders.length) {
+                localStorage.setItem('ib_orders', JSON.stringify(orders));
+                updateNextOrderId();
+                renderKitchenDisplay();
+                renderDailyReport();
+                renderMonthlyReport();
+              }
             }
           }
         });
