@@ -8,6 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- html2pdf.js 用于前端直接生成精美 PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
       body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
       .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -225,18 +227,23 @@
         <div class="bg-slate-900 text-white p-4 rounded-xl shadow-lg space-y-3 border-2 border-amber-400">
           <div class="flex justify-between items-center">
             <span class="font-black text-sm text-amber-400 flex items-center gap-1.5"><i class="fa-solid fa-business-time"></i> 手动日结与营业日期控制</span>
-            <button onclick="exportDailyCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-black shadow flex items-center gap-1">
-              <i class="fa-solid fa-file-csv text-sm"></i> 导出今日CSV
-            </button>
+            <div class="flex gap-1.5">
+              <button onclick="exportDailyCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-lg text-xs font-black shadow flex items-center gap-1">
+                <i class="fa-solid fa-file-csv"></i> CSV
+              </button>
+              <button onclick="exportDailyPDF()" class="bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1.5 rounded-lg text-xs font-black shadow flex items-center gap-1">
+                <i class="fa-solid fa-file-pdf"></i> 今日PDF
+              </button>
+            </div>
           </div>
-          <p class="text-xs text-slate-300 font-bold">因为营业至凌晨 12:30am，您可以自行决定何时结束今天的账目。点击“结束今天并开启新一天”后，新开的单子才会计入新的日期。</p>
+          <p class="text-xs text-slate-300 font-bold">因为营业至凌晨 12:30am，您可以自行决定何时结束今天的账目。点击“结束今天并开启新一天”后，系统会自动为您生成今日 PDF 账目报告并开启新一天。</p>
           <div class="flex items-center justify-between bg-slate-800 p-3 rounded-lg border border-slate-700 text-xs font-bold">
             <div>
               <span class="text-slate-400 block">当前正在记账的营业日:</span>
               <span id="active-bus-date-display" class="text-amber-400 font-black text-sm"></span>
             </div>
             <button onclick="manualCloseTodayAndStartNew()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 font-black px-3.5 py-2 rounded-lg shadow">
-              🏁 结束今天账目 & 开启新一天
+              🏁 结束今天 & 生成PDF & 开启新一天
             </button>
           </div>
         </div>
@@ -341,9 +348,14 @@
         <div class="bg-white p-4 rounded-xl shadow-sm border-2 border-amber-400 bg-amber-50/40 space-y-3">
           <div class="flex justify-between items-center">
             <h2 class="font-black text-slate-800 text-sm flex items-center gap-1.5"><i class="fa-solid fa-arrows-rotate text-amber-600"></i> 自定义结算周期管理</h2>
-            <button onclick="exportMonthlyCSV()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-black shadow flex items-center gap-1">
-              <i class="fa-solid fa-file-csv"></i> 导出本月CSV
-            </button>
+            <div class="flex gap-1.5">
+              <button onclick="exportMonthlyCSV()" class="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg text-xs font-black shadow flex items-center gap-1">
+                <i class="fa-solid fa-file-csv"></i> CSV
+              </button>
+              <button onclick="exportMonthlyPDF()" class="bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1.5 rounded-lg text-xs font-black shadow flex items-center gap-1">
+                <i class="fa-solid fa-file-pdf"></i> 月度PDF
+              </button>
+            </div>
           </div>
           <p class="text-xs text-slate-600 font-bold">您可以随时点击结算。结算后，当前累积的数据会存入历史存档，新周期重新从 0 开始计算。</p>
           <div class="flex items-center justify-between text-xs font-bold bg-white p-3 rounded-lg border border-amber-200">
@@ -352,7 +364,7 @@
               <span id="active-cycle-label" class="text-slate-800 font-black text-sm">进行中</span>
             </div>
             <button onclick="startNewCycle()" class="bg-amber-600 hover:bg-amber-700 text-white font-black px-4 py-2.5 rounded-lg shadow">
-              <i class="fa-solid fa-flag-checkered mr-1"></i> 结算并开启新周期
+              <i class="fa-solid fa-flag-checkered mr-1"></i> 结算并生成PDF & 开启新周期
             </button>
           </div>
         </div>
@@ -723,9 +735,165 @@
         setInterval(fetchOrdersFromCloud, 2000);
       };
 
+      // 🌟 导出今日 PDF 账目报告
+      function exportDailyPDF() {
+        const isRest = !!restDays[targetDate];
+        const validTargetOrders = orders.filter(o => o.date === targetDate && o.status !== 'cancelled');
+        const targetMisc = miscExpenses.filter(m => m.date === targetDate);
+
+        let cashSales = 0, qrSales = 0, totalCogs = 0, totalMisc = 0;
+        validTargetOrders.forEach(o => {
+          if (o.payStatus === 'cash') cashSales += o.finalAmount;
+          else if (o.payStatus === 'qr') qrSales += o.finalAmount;
+          totalCogs += o.totalCost;
+        });
+        targetMisc.forEach(m => totalMisc += m.amount);
+
+        const totalSales = cashSales + qrSales;
+        const dailyRent = isRest ? 0 : (expenses.monthlyRent / 26);
+        const dailyWorkerCostTotal = getDailyLaborCost(targetDate, isRest);
+        const totalExpenses = dailyRent + dailyWorkerCostTotal;
+        const nettProfit = totalSales - totalCogs - totalExpenses - totalMisc;
+
+        let ordersHtml = '';
+        validTargetOrders.forEach(o => {
+          let itemsStr = o.items.map(i => `${i.name}(${i.qtyInfo})`).join(', ');
+          ordersHtml += `
+            <tr>
+              <td style="padding:6px; border-bottom:1px solid #ddd;">${o.orderNum}</td>
+              <td style="padding:6px; border-bottom:1px solid #ddd;">桌 ${o.table}</td>
+              <td style="padding:6px; border-bottom:1px solid #ddd;">${o.payStatus.toUpperCase()}</td>
+              <td style="padding:6px; border-bottom:1px solid #ddd; font-size:11px;">${itemsStr}</td>
+              <td style="padding:6px; border-bottom:1px solid #ddd; text-align:right; font-weight:bold;">RM ${o.finalAmount.toFixed(2)}</td>
+            </tr>
+          `;
+        });
+
+        let miscHtml = '';
+        targetMisc.forEach(m => {
+          miscHtml += `<tr><td style="padding:4px;">${m.category} - ${m.remark}</td><td style="padding:4px; text-align:right;">RM ${m.amount.toFixed(2)}</td></tr>`;
+        });
+
+        const element = document.createElement('div');
+        element.innerHTML = `
+          <div style="font-family:sans-serif; padding:20px; color:#1e293b; max-width:600px; margin:0 auto; background:#ffffff;">
+            <div style="text-align:center; border-bottom:2px solid #0f172a; padding-bottom:10px; margin-bottom:15px;">
+              <h2 style="margin:0; font-size:20px; font-weight:900; color:#0f172a;">🔥 烧鱼 POS 系统 - 每日营业结算报表</h2>
+              <p style="margin:4px 0 0; font-size:12px; color:#64748b;">营业日期: <b>${targetDate}</b> | 生成时间: ${new Date().toLocaleString('zh-CN')}</p>
+            </div>
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px; font-size:13px;">
+              <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid #e2e8f0;">
+                <p style="margin:0 0 5px; color:#64748b; font-weight:bold;">营业额统计</p>
+                <div style="display:flex; justify-content:between;"><span>现金营业额:</span> <b>RM ${cashSales.toFixed(2)}</b></div>
+                <div style="display:flex; justify-content:between;"><span>QR营业额:</span> <b>RM ${qrSales.toFixed(2)}</b></div>
+                <div style="display:flex; justify-content:between; border-top:1px dashed #cbd5e1; margin-top:5px; padding-top:5px; color:#2563eb;"><span>总营业额:</span> <b>RM ${totalSales.toFixed(2)}</b></div>
+              </div>
+              <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid #e2e8f0;">
+                <p style="margin:0 0 5px; color:#64748b; font-weight:bold;">成本与开销</p>
+                <div style="display:flex; justify-content:between;"><span>海鲜原料成本:</span> <b style="color:#dc2626;">RM ${totalCogs.toFixed(2)}</b></div>
+                <div style="display:flex; justify-content:between;"><span>固定开销(租金+薪水):</span> <b style="color:#d97706;">RM ${totalExpenses.toFixed(2)}</b></div>
+                <div style="display:flex; justify-content:between;"><span>杂项支出:</span> <b style="color:#dc2626;">RM ${totalMisc.toFixed(2)}</b></div>
+              </div>
+            </div>
+
+            <div style="background:#0f172a; color:#ffffff; padding:12px; border-radius:10px; text-align:center; margin-bottom:20px;">
+              <span style="font-size:12px; color:#94a3b8; display:block;">当日净利润 (Nett Profit)</span>
+              <span style="font-size:26px; font-weight:900; color:#34d399;">RM ${nettProfit.toFixed(2)}</span>
+            </div>
+
+            ${targetMisc.length > 0 ? `<div style="margin-bottom:15px;"><h4 style="font-size:13px; margin:0 0 5px; border-bottom:1px solid #cbd5e1; padding-bottom:3px;">当日支出明细</h4><table style="width:100%; font-size:12px; border-collapse:collapse;">${miscHtml}</table></div>` : ''}
+
+            <div>
+              <h4 style="font-size:13px; margin:0 0 5px; border-bottom:1px solid #cbd5e1; padding-bottom:3px;">有效订单明细 (${validTargetOrders.length}单)</h4>
+              <table style="width:100%; font-size:11px; border-collapse:collapse;">
+                <thead>
+                  <tr style="background:#f1f5f9; text-align:left;">
+                    <th style="padding:6px;">单号</th>
+                    <th style="padding:6px;">桌号</th>
+                    <th style="padding:6px;">支付</th>
+                    <th style="padding:6px;">菜品</th>
+                    <th style="padding:6px; text-align:right;">金额</th>
+                  </tr>
+                </thead>
+                <tbody>${ordersHtml}</tbody>
+              </table>
+            </div>
+          </div>
+        `;
+
+        const opt = {
+          margin: 10,
+          filename: `Daily_Report_${targetDate}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().from(element).set(opt).save();
+      }
+
+      // 🌟 导出月度/周期 PDF 账目报告
+      function exportMonthlyPDF() {
+        const selectedMonth = document.getElementById('monthly-picker').value;
+        if (!selectedMonth) return;
+        const monthOrders = orders.filter(o => o.date.startsWith(selectedMonth) && o.status !== 'cancelled');
+        const monthMisc = miscExpenses.filter(m => m.date.startsWith(selectedMonth));
+        const activeDays = Array.from(new Set(monthOrders.map(o => o.date)));
+
+        let monthSales = 0, monthCogs = 0, monthMiscTotal = 0, monthLaborCost = 0;
+        monthOrders.forEach(o => { monthSales += o.finalAmount; monthCogs += o.totalCost; });
+        monthMisc.forEach(m => monthMiscTotal += m.amount);
+        activeDays.forEach(d => { monthLaborCost += getDailyLaborCost(d, !!restDays[d]); });
+
+        const monthFixedCost = monthLaborCost + Number(expenses.monthlyRent);
+        const monthNett = monthSales - monthCogs - monthFixedCost - monthMiscTotal;
+
+        const element = document.createElement('div');
+        element.innerHTML = `
+          <div style="font-family:sans-serif; padding:20px; color:#1e293b; max-width:600px; margin:0 auto; background:#ffffff;">
+            <div style="text-align:center; border-bottom:2px solid #0f172a; padding-bottom:10px; margin-bottom:15px;">
+              <h2 style="margin:0; font-size:20px; font-weight:900; color:#0f172a;">🔥 烧鱼 POS 系统 - 月度财务结算报表</h2>
+              <p style="margin:4px 0 0; font-size:12px; color:#64748b;">结算月份: <b>${selectedMonth}</b> | 生成时间: ${new Date().toLocaleString('zh-CN')}</p>
+            </div>
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px; font-size:13px;">
+              <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid #e2e8f0;">
+                <p style="margin:0 0 5px; color:#64748b; font-weight:bold;">周期收入与天数</p>
+                <div style="display:flex; justify-content:between;"><span>营业天数:</span> <b>${activeDays.length} 天</b></div>
+                <div style="display:flex; justify-content:between; border-top:1px dashed #cbd5e1; margin-top:5px; padding-top:5px; color:#2563eb;"><span>周期总营业额:</span> <b>RM ${monthSales.toFixed(2)}</b></div>
+              </div>
+              <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid #e2e8f0;">
+                <p style="margin:0 0 5px; color:#64748b; font-weight:bold;">成本与开销汇总</p>
+                <div style="display:flex; justify-content:between;"><span>海鲜总成本:</span> <b style="color:#dc2626;">RM ${monthCogs.toFixed(2)}</b></div>
+                <div style="display:flex; justify-content:between;"><span>固定总开销:</span> <b style="color:#d97706;">RM ${monthFixedCost.toFixed(2)}</b></div>
+                <div style="display:flex; justify-content:between;"><span>杂项总支出:</span> <b style="color:#dc2626;">RM ${monthMiscTotal.toFixed(2)}</b></div>
+              </div>
+            </div>
+
+            <div style="background:#0f172a; color:#ffffff; padding:12px; border-radius:10px; text-align:center; margin-bottom:20px;">
+              <span style="font-size:12px; color:#94a3b8; display:block;">周期净利润 (Nett Profit)</span>
+              <span style="font-size:26px; font-weight:900; color:#34d399;">RM ${monthNett.toFixed(2)}</span>
+            </div>
+          </div>
+        `;
+
+        const opt = {
+          margin: 10,
+          filename: `Monthly_Report_${selectedMonth}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().from(element).set(opt).save();
+      }
+
       function manualCloseTodayAndStartNew() {
         vibrate(30);
-        if (confirm(`确认要结束当前营业日 [${currentBusinessDate}] 的账目吗？`)) {
+        if (confirm(`确认要结束当前营业日 [${currentBusinessDate}] 的账目吗？系统将自动为您导出今日 PDF 账目报告并开启新一天。`)) {
+          exportDailyPDF();
+
           const parts = currentBusinessDate.split('-');
           let d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
           d.setDate(d.getDate() + 1);
@@ -742,7 +910,7 @@
           const picker = document.getElementById('target-date-picker');
           if(picker) picker.value = targetDate;
 
-          alert(`✅ 已成功开启新营业日: ${currentBusinessDate}`);
+          alert(`✅ 今日 PDF 报告已下载，并成功开启新营业日: ${currentBusinessDate}`);
           updateNextOrderId();
           renderProductsPOS();
           renderKitchenDisplay();
@@ -786,12 +954,13 @@
       }
 
       function startNewCycle() {
-        if (confirm('确认要对当前周期进行结算并开启新周期吗？')) {
+        if (confirm('确认要对当前周期进行结算并生成月度 PDF 报告吗？')) {
+          exportMonthlyPDF();
           const archiveId = `Cycle_${Date.now()}`;
           const activeMonth = currentBusinessDate.slice(0, 7);
           cycleArchives.push({ id: archiveId, date: currentBusinessDate, month: activeMonth, note: `手动结算周期` });
           localStorage.setItem('ib_cycle_archives', JSON.stringify(cycleArchives));
-          alert('🎉 新周期已成功开启！');
+          alert('🎉 月度 PDF 报告已导出，新周期已成功开启！');
           renderMonthlyReport();
         }
       }
@@ -900,6 +1069,7 @@
           alert(`✅ ${p.name} 价格已更新！`);
           closeQuickEditModal();
           renderProductsPOS();
+          renderSettings();
         }
       }
 
@@ -1304,6 +1474,23 @@
           select.innerHTML = '';
           products.filter(p => p.unit === 'g').forEach(p => {
             const opt = document.createElement('option'); opt.value = p.id; opt.innerText = p.name; select.appendChild(opt);
+          });
+        }
+
+        const listContainer = document.getElementById('settings-product-list');
+        if(listContainer) {
+          listContainer.innerHTML = '';
+          products.forEach(p => {
+            const div = document.createElement('div');
+            div.className = 'flex items-center justify-between gap-2 p-2 bg-slate-50 rounded-lg border text-xs font-bold';
+            let priceInputHtml = p.unit === 'g' 
+              ? `<input type="number" step="0.1" id="set-price-${p.id}" value="${p.pricePer100g}" class="w-20 border rounded p-1 text-center font-black"> <span class="text-slate-500">RM/100g</span>`
+              : `<span class="text-slate-500">按包: RM ${p.pricePerPack}</span>`;
+            div.innerHTML = `
+              <div><span class="font-black text-slate-800">${p.name}</span><button onclick="deleteProduct('${p.id}')" class="text-rose-600 ml-2">🗑️</button></div>
+              <div class="flex items-center gap-1">${priceInputHtml}</div>
+            `;
+            listContainer.appendChild(div);
           });
         }
       }
